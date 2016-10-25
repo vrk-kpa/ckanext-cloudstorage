@@ -16,6 +16,10 @@ from libcloud.storage.providers import get_driver
 
 class CloudStorage(object):
     def __init__(self):
+        self._driver_options = literal_eval(config['ckanext.cloudstorage.driver_options'])
+        if 'S3' in self.driver_name and not self.driver_options:
+            self.authenticate_with_aws()
+
         self.driver = get_driver(
             getattr(
                 Provider,
@@ -27,11 +31,34 @@ class CloudStorage(object):
     def path_from_filename(self, rid, filename):
         raise NotImplemented
 
+    def authenticate_with_aws(self):
+        import requests
+        r = requests.get("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
+        role = r.text
+        r = requests.get("http://169.254.169.254/latest/meta-data/iam/security-credentials/" + role)
+        credentials = r.json()
+        self.driver_options = {'key': credentials['AccessKeyId'],
+                               'secret': credentials['SecretAccessKey'],
+                               'token': credentials['Token'],
+                               'expires': credentials['Expiration']}
+
+        self.driver = get_driver(
+            getattr(
+                Provider,
+                self.driver_name
+            )
+        )(**self.driver_options)
+        self._container = None
+
     @property
     def container(self):
         """
         Return the currently configured libcloud container.
         """
+        expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
+        if  expires < datetime.utcnow():
+            self.authenticate_with_aws()
+
         if self._container is None:
             self._container = self.driver.get_container(
                 container_name=self.container_name
@@ -45,7 +72,11 @@ class CloudStorage(object):
         A dictionary of options ckanext-cloudstorage has been configured to
         pass to the apache-libcloud driver.
         """
-        return literal_eval(config['ckanext.cloudstorage.driver_options'])
+        return self._driver_options
+
+    @driver_options.setter
+    def driver_options(self, value):
+        self._driver_options = value
 
     @property
     def driver_name(self):
