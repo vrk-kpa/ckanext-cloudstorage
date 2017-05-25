@@ -55,9 +55,10 @@ class CloudStorage(object):
         """
         Return the currently configured libcloud container.
         """
-        expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
-        if  expires < datetime.utcnow():
-            self.authenticate_with_aws()
+        if self.driver_options.get('expires'):
+            expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
+            if  expires < datetime.utcnow():
+                self.authenticate_with_aws()
 
         if self._container is None:
             self._container = self.driver.get_container(
