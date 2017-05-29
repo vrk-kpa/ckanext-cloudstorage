@@ -33,12 +33,14 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._save = $('[name=save]');
             this._id = $('input[name=id]');
             this._progress = $('<div>', {
-                class: 'hide controls progress progress-striped active'
+                class: 'progress hidden'
             });
-            this._bar = $('<div>', {class:'bar'});
+            this._bar = $('<div>', {
+                class: 'progress-bar progress-bar-striped active'
+            });
             this._progress.append(this._bar);
             this._progress.insertAfter(this._url.parent().parent());
-            this._resumeBtn = $('<a>', {class: 'hide btn btn-info controls'}).insertAfter(
+            this._resumeBtn = $('<a>', {class: 'hidden btn btn-info controls'}).insertAfter(
                 this._progress).text('Resume Upload');
 
             var self = this;
@@ -129,7 +131,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         break;
                     }
                 })
-                .show();
+                .removeClass('hidden').show();
         },
 
         _onDisableResumeBtn: function () {
@@ -153,7 +155,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             }
 
             this._setProgressType('info', this._progress);
-            this._progress.show('slow');
+            this._progress.removeClass('hidden').show('slow');
         },
 
         _onGenerateAdditionalData: function (form) {
@@ -212,7 +214,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     loaded: loaded
                 });
 
-                this._progress.show('slow');
+                this._progress.removeClass('hidden').show('slow');
                 this._onDisableResumeBtn();
                 this._save.trigger('click');
 
@@ -398,7 +400,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
         },
 
         _setProgress: function (progress, bar) {
-            bar.css('width', progress + '%');
+            bar.css('width', progress + '%').text(Math.round(progress) + '%');
         },
 
         _setProgressType: function (type, progress) {
