@@ -17,7 +17,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'apache-libcloud==1.5.0'
+        'apache-libcloud==1.5.0',
+        'ckanapi'
     ],
     entry_points=(
         """
