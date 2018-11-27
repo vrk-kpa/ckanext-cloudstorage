@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pylons import config
 from ckan import model
 from ckan.lib import munge
+from ckan.plugins.toolkit import get_action
 
 from libcloud.storage.types import Provider, ObjectDoesNotExistError
 from libcloud.storage.providers import get_driver
@@ -214,6 +215,12 @@ class ResourceCloudStorage(CloudStorage):
             rid,
             munge.munge_filename(filename)
         )
+
+    def get_path(self, resource_id):
+        resource = get_action('resource_show')({}, {'id': resource_id})
+        filename = resource['url'].rsplit('/', 1)[-1]
+
+        return self.get_url_from_filename(resource_id, filename)
 
     def upload(self, id, max_size=10):
         """
