@@ -93,6 +93,11 @@ def initiate_multipart(context, data_dict):
     if context['auth_user_obj']:
         user_id = context['auth_user_obj'].id
 
+    res_dict = toolkit.get_action('resource_show')(
+        context.copy(), {'id': data_dict.get('id')})
+    res_dict['upload_in_progress'] = True
+    toolkit.get_action('resource_patch')(context.copy(),res_dict)
+
     uploader = ResourceCloudStorage({'multipart_name': name})
     res_name = uploader.path_from_filename(id, name)
 
@@ -209,6 +214,9 @@ def finish_multipart(context, data_dict):
                 dict(context.copy(), allow_state_change=True),
                 dict(id=pkg_dict['id'], state='active')
             )
+
+        res_dict.pop('upload_in_progress', None)
+        toolkit.get_action('resource_update')(context.copy(),res_dict)
     except Exception as e:
         log.error(e)
     return {'commited': True}
