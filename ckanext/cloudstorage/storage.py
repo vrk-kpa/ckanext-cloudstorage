@@ -30,7 +30,7 @@ class CloudStorage(object):
         self._container = None
 
     def path_from_filename(self, rid, filename):
-        raise NotImplemented
+        raise NotImplementedError
 
     def authenticate_with_aws(self):
         import requests
@@ -58,7 +58,7 @@ class CloudStorage(object):
         """
         if self.driver_options.get('expires'):
             expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
-            if  expires < datetime.utcnow():
+            if expires < datetime.utcnow():
                 self.authenticate_with_aws()
 
         if self._container is None:
