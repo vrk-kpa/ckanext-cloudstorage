@@ -51,4 +51,3 @@ class StorageController(base.BaseController):
             base.abort(404, _('No download is available'))
 
         helpers.redirect_to(uploaded_url)
-
