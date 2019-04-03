@@ -375,9 +375,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         // self._form.remove();
                         var redirect_url = self.sandbox.url(
                             '/dataset/' +
-                            self._packageId +
-                            '/resource/' +
-                            self._resourceId);
+                            self._packageId);
                         self._form.attr('action', redirect_url);
                         self._form.attr('method', 'GET');
                         self.$('[name]').attr('name', null);
