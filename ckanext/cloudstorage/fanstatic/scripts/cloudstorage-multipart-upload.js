@@ -377,7 +377,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         // self._form.remove();
                         if (self._pressedSaveButton == 'again') {
                             var path = '/dataset/new_resource/';
-                        } else if (self.pressedSaveButton == 'go-metadata') {
+                        } else if (self._pressedSaveButton == 'go-metadata') {
                             var path = '/dataset/edit/';
                         } else {
                             var path = '/dataset/';
