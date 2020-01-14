@@ -42,6 +42,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._progress.insertAfter(this._url.parent().parent());
             this._resumeBtn = $('<a>', {class: 'hidden btn btn-info controls'}).insertAfter(
                 this._progress).text('Resume Upload');
+            this._pressedSaveButton = null;
 
             var self = this;
 
@@ -244,8 +245,9 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             }
             event.preventDefault();
 
-            try{
+            try {
                 this._onDisableSave(true);
+                this._pressedSaveButton = event.target.value;
                 this._onSaveForm();
             } catch(error){
                 console.log(error);
@@ -373,9 +375,15 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                             'success'
                         );
                         // self._form.remove();
-                        var redirect_url = self.sandbox.url(
-                            '/dataset/' +
-                            self._packageId);
+                        if (self._pressedSaveButton == 'again') {
+                            var path = '/dataset/new_resource';
+                        } else if (self.pressedSaveButton == 'go-metadata') {
+                            var path = '/dataset/edit/';
+                        } else {
+                            var path = '/dataset/';
+                        }
+                        var redirect_url = self.sandbox.url(path + self._packageId);
+
                         self._form.attr('action', redirect_url);
                         self._form.attr('method', 'GET');
                         self.$('[name]').attr('name', null);
