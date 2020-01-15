@@ -184,6 +184,7 @@ def finish_multipart(context, data_dict):
 
     :param context:
     :param data_dict: dict with required key `uploadId` - id of Multipart Upload that should be finished
+    :param keepDraft: true if dataset should be kept as a draft after the file is uploaded
     :returns: None
     :rtype: NoneType
 
@@ -216,7 +217,7 @@ def finish_multipart(context, data_dict):
         pkg_dict = toolkit.get_action('package_show')(
             context.copy(), {'id': res_dict['package_id']})
 
-        if pkg_dict['state'] == 'draft' and not data_dict.get('keepDraft'):
+        if pkg_dict['state'] == 'draft' and not toolkit.asbool(data_dict.get('keepDraft')):
             toolkit.get_action('package_patch')(
                 dict(context.copy(), allow_state_change=True),
                 dict(id=pkg_dict['id'], state='active')
