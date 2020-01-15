@@ -216,7 +216,7 @@ def finish_multipart(context, data_dict):
         pkg_dict = toolkit.get_action('package_show')(
             context.copy(), {'id': res_dict['package_id']})
 
-        if pkg_dict['state'] == 'draft':
+        if pkg_dict['state'] == 'draft' and not data_dict.get('keepDraft'):
             toolkit.get_action('package_patch')(
                 dict(context.copy(), allow_state_change=True),
                 dict(id=pkg_dict['id'], state='active')
