@@ -356,12 +356,14 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
 
         _onFinishUpload: function() {
             var self = this;
+            var keepDraft = this._pressedSaveButton == 'again' || this._pressedSaveButton == 'go-dataset';
             this.sandbox.client.call(
                 'POST',
                 'cloudstorage_finish_multipart',
                 {
                     'uploadId': this._uploadId,
-                    'id': this._resourceId
+                    'id': this._resourceId,
+                    'keepDraft': keepDraft
                 },
                 function (data) {
 
