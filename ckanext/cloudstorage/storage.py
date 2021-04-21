@@ -350,17 +350,17 @@ class ResourceCloudStorage(CloudStorage):
         elif self.can_use_advanced_aws and self.use_secure_urls:
 
             from boto.s3.connection import S3Connection
+            os.environ['S3_USE_SIGV4'] = 'True'
             s3_connection = S3Connection(
                 aws_access_key_id=self.driver_options['key'],
                 aws_secret_access_key=self.driver_options['secret'],
                 security_token=self.driver_options['token'],
-                host='s3.ca-central-1.amazonaws.com'
+                host='s3.eu-west-1.amazonaws.com'
             )
 
             generate_url_params = {"expires_in": 60 * 60,
                                    "method": "GET",
                                    "bucket": self.container_name,
-                                   "query_auth": True,
                                    "key": path}
             if content_type:
                 generate_url_params['headers'] = {"Content-Type": content_type}
