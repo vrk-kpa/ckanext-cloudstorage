@@ -353,7 +353,8 @@ class ResourceCloudStorage(CloudStorage):
             s3_connection = S3Connection(
                 aws_access_key_id=self.driver_options['key'],
                 aws_secret_access_key=self.driver_options['secret'],
-                security_token=self.driver_options['token']
+                security_token=self.driver_options['token'],
+                host='s3.ca-central-1.amazonaws.com'
             )
 
             generate_url_params = {"expires_in": 60 * 60,
@@ -364,7 +365,7 @@ class ResourceCloudStorage(CloudStorage):
             if content_type:
                 generate_url_params['headers'] = {"Content-Type": content_type}
 
-            return s3_connection.generate_url(**generate_url_params)
+            return s3_connection.generate_url_sigv4(**generate_url_params)
 
         # Find the object for the given key.
         obj = self.container.get_object(path)
