@@ -24,9 +24,6 @@ setup(
         """
         [ckan.plugins]
         cloudstorage=ckanext.cloudstorage.plugin:CloudStoragePlugin
-
-        [paste.paster_command]
-        cloudstorage=ckanext.cloudstorage.cli:PasterCommand
         """
     ),
 )

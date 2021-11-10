@@ -5,6 +5,7 @@ from routes.mapper import SubMapper
 import os.path
 from ckanext.cloudstorage import storage
 from ckanext.cloudstorage import helpers
+from ckanext.cloudstorage import cli
 import ckanext.cloudstorage.logic.action.multipart as m_action
 import ckanext.cloudstorage.logic.auth.multipart as m_auth
 
@@ -18,6 +19,7 @@ class CloudStoragePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IResourceController, inherit=True)
+    plugins.implements(plugins.IClick)
 
     # IConfigurer
 
@@ -140,3 +142,8 @@ class CloudStoragePlugin(plugins.SingletonPlugin):
             for old_file in uploader.container.iterate_objects():
                 if old_file.name.startswith(upload_path):
                     old_file.delete()
+
+    # IClick
+
+    def get_commands(self):
+        return cli.get_commands()

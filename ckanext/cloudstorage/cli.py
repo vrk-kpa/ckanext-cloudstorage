@@ -4,8 +4,7 @@ import os
 import os.path
 import cgi
 
-from docopt import docopt
-from ckan.lib.cli import CkanCommand
+import click
 
 from ckanapi import LocalCKAN
 from ckanext.cloudstorage.storage import (
@@ -19,48 +18,59 @@ from ckanext.cloudstorage.model import (
 
 from ckan.logic import NotFound
 
-USAGE = """ckanext-cloudstorage
 
-Commands:
-    - fix-cors       Update CORS rules where possible.
-    - migrate        Upload local storage to the remote.
-    - initdb         Reinitalize database tables.
-
-Usage:
-    cloudstorage fix-cors <domains>... [--c=<config>]
-    cloudstorage migrate <path_to_storage> [--c=<config>]
-    cloudstorage initdb [--c=<config>]
-
-Options:
-    -c=<config>       The CKAN configuration file.
-"""
+def get_commands():
+    return [cloudstorage]
 
 
-class FakeFileStorage(cgi.FieldStorage):
-    def __init__(self, fp, filename):
-        self.file = fp
-        self.filename = filename
+@click.group()
+def cloudstorage():
+    'ckanext-cloudstorage maintence utilities.'
+    pass
 
 
-class PasterCommand(CkanCommand):
-    summary = 'ckanext-cloudstorage maintence utilities.'
-    usage = USAGE
+@cloudstorage.command()
+@click.argument('domains')
+@click.pass_context
+def fix_cors(ctx, domains):
+    'Update CORS rules where possible.'
+    cs = CloudStorage()
 
-    def command(self):
-        self._load_config()
-        args = docopt(USAGE, argv=self.args)
+    if cs.can_use_advanced_azure:
+        from azure.storage import blob as azure_blob
+        from azure.storage import CorsRule
 
-        if args['fix-cors']:
-            _fix_cors(args)
-        elif args['migrate']:
-            _migrate(args)
-        elif args['initdb']:
-            _initdb()
+        blob_service = azure_blob.BlockBlobService(
+            cs.driver_options['key'],
+            cs.driver_options['secret']
+        )
+
+        blob_service.set_blob_service_properties(
+            cors=[
+                CorsRule(
+                    allowed_origins=domains,
+                    allowed_methods=['GET']
+                )
+            ]
+        )
+        print('Done!')
+    else:
+        print(
+            'The driver {driver_name} being used does not currently'
+            ' support updating CORS rules through'
+            ' cloudstorage.'.format(
+                driver_name=cs.driver_name
+            )
+        )
 
 
-def _migrate(args):
-    path = args['<path_to_storage>']
-    if not os.path.isdir(path):
+@cloudstorage.command()
+@click.argument('path_to_storage')
+@click.pass_context
+def migrate(ctx, path_to_storage):
+    'Upload local storage to the remote.'
+
+    if not os.path.isdir(path_to_storage):
         print('The storage directory cannot be found.')
         return
 
@@ -77,7 +87,7 @@ def _migrate(args):
     #       ...
     #     ...
     #   ...
-    for root, dirs, files in os.walk(path):
+    for root, dirs, files in os.walk(path_to_storage):
         # Only the bottom level of the tree actually contains any files. We
         # don't care at all about the overall structure.
         if not files:
@@ -118,38 +128,17 @@ def _migrate(args):
             uploader.upload(resource['id'])
 
 
-def _fix_cors(args):
-    cs = CloudStorage()
+@cloudstorage.command('initdb')
+@click.pass_context
+def initdb(ctx):
+    'Reinitalize database tables.'
 
-    if cs.can_use_advanced_azure:
-        from azure.storage import blob as azure_blob
-        from azure.storage import CorsRule
-
-        blob_service = azure_blob.BlockBlobService(
-            cs.driver_options['key'],
-            cs.driver_options['secret']
-        )
-
-        blob_service.set_blob_service_properties(
-            cors=[
-                CorsRule(
-                    allowed_origins=args['<domains>'],
-                    allowed_methods=['GET']
-                )
-            ]
-        )
-        print('Done!')
-    else:
-        print(
-            'The driver {driver_name} being used does not currently'
-            ' support updating CORS rules through'
-            ' cloudstorage.'.format(
-                driver_name=cs.driver_name
-            )
-        )
-
-
-def _initdb():
     drop_tables()
     create_tables()
     print("DB tables are reinitialized")
+
+
+class FakeFileStorage(cgi.FieldStorage):
+    def __init__(self, fp, filename):
+        self.file = fp
+        self.filename = filename
