@@ -5,6 +5,7 @@ import os.path
 import urlparse
 from ast import literal_eval
 from datetime import datetime, timedelta
+from time import time
 from tempfile import SpooledTemporaryFile
 
 from pylons import config
@@ -30,7 +31,10 @@ class CloudStorage(object):
     def __init__(self):
         self._driver_options = literal_eval(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options:
-            self.authenticate_with_aws()
+            if self.aws_use_boto3_sessions:
+                self.authenticate_with_aws_boto3()
+            else:
+                self.authenticate_with_aws()
 
         self.driver = get_driver(
             getattr(
@@ -62,6 +66,28 @@ class CloudStorage(object):
         )(**self.driver_options)
         self._container = None
 
+    def authenticate_with_aws_boto3(self):
+        """
+        TTL max 900 seconds for IAM role session
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html#id_roles_use_view-role-max-session
+        """
+        import boto3
+        session = boto3.Session()
+        credentials = session.get_credentials()
+        current_credentials = credentials.get_frozen_credentials()
+        self.driver_options = {'key': current_credentials.access_key,
+                            'secret': current_credentials.secret_key,
+                            'token': current_credentials.token,
+                            'expires': datetime.fromtimestamp(time() + 900).strftime('%Y-%m-%dT%H:%M:%SZ')}
+
+        self.driver = get_driver(
+            getattr(
+                Provider,
+                self.driver_name
+            )
+        )(**self.driver_options)
+        self._container = None
+
     @property
     def container(self):
         """
@@ -70,7 +96,10 @@ class CloudStorage(object):
         if self.driver_options.get('expires'):
             expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
             if expires < datetime.utcnow():
-                self.authenticate_with_aws()
+                if self.aws_use_boto3_sessions:
+                    self.authenticate_with_aws_boto3()
+                else:
+                    self.authenticate_with_aws()
 
         if self._container is None:
             self._container = self.driver.get_container(
@@ -120,6 +149,15 @@ class CloudStorage(object):
         one-time URLs to resources, `False` otherwise.
         """
         return bool(int(config.get('ckanext.cloudstorage.use_secure_urls', 0)))
+
+    @property
+    def aws_use_boto3_sessions(self):
+        """
+        'True' if ckanext-cloudstorage is configured to use boto3 instead of
+        boto for AWS IAM sessions. This makes session creation possible on
+        platforms like AWS ECS Fargate or AWS Lambda.
+        """
+        return bool(int(config.get('ckanext.cloudstorage.aws_use_boto3_sessions', 0)))
 
     @property
     def leave_files(self):
