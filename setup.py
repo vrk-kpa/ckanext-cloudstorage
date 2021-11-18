@@ -18,6 +18,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'apache-libcloud==1.5.0',
+        'boto3==1.17.112',
         'ckanapi'
     ],
     entry_points=(
