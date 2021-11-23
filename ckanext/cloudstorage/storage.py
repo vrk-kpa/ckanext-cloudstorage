@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from time import time
 from tempfile import SpooledTemporaryFile
 
-from pylons import config
+from ckan.plugins.toolkit import config
 from ckan import model
 from ckan.lib import munge
 from ckan.plugins.toolkit import get_action
