@@ -21,6 +21,8 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
         _uploadSize: null,
         _uploadName: null,
         _uploadedParts: null,
+        _clickedBtn: null,
+        _redirect_url: null,
 
         initialize: function() {
             $.proxyAll(this, /_on/);
@@ -98,7 +100,6 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         'File: ' + upload.original_name +
                              '; Size: ' + self._uploadSize,
                         'warning');
-
                     self._onEnableResumeBtn(operation);
                 },
                 function (error) {
@@ -252,6 +253,18 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             } catch(error){
                 console.log(error);
                 this._onDisableSave(false);
+                this._redirect_url = this.sandbox.url(
+                    '/dataset/edit/' +
+                    dataset_id);
+                window.location = this._redirect_url;
+            } else {
+                try{
+                    this._onDisableSave(true);
+                    this._onSaveForm();
+                } catch(error){
+                    console.log(error);
+                    this._onDisableSave(false);
+                }
             }
 
             // this._form.trigger('submit', true);
@@ -270,6 +283,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             formData.url = file.name;
             formData.package_id = this.options.packageId;
             formData.size = file.size;
+            formData.url_type = 'upload';
             var action = formData.id ? 'resource_update' : 'resource_create';
             var url = this._form.attr('action') || window.location.href;
             this.sandbox.client.call(

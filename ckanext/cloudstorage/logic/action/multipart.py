@@ -130,23 +130,17 @@ def initiate_multipart(context, data_dict):
             except Exception as e:
                 log.exception('[delete from cloud] %s' % e)
 
-        resp = uploader.driver.connection.request(
-            _get_object_url(uploader, res_name) + '?uploads',
-            method='POST'
+        upload_object = MultipartUpload(
+            uploader.driver._initiate_multipart(
+                container=uploader.container,
+                object_name=res_name
+            ),
+            id,
+            res_name,
+            size,
+            name,
+            user_id
         )
-        if not resp.success():
-            raise toolkit.ValidationError(resp.error)
-        try:
-            upload_id = resp.object.find(
-                '{%s}UploadId' % resp.object.nsmap[None]).text
-        except AttributeError:
-            upload_id_list = filter(
-                lambda e: e.tag.endswith('UploadId'),
-                resp.object.getchildren()
-            )
-            upload_id = upload_id_list[0].text
-        upload_object = MultipartUpload(upload_id, id, res_name, size, name, user_id)
-
         upload_object.save()
     return upload_object.as_dict()
 
@@ -154,22 +148,35 @@ def initiate_multipart(context, data_dict):
 def upload_multipart(context, data_dict):
     h.check_access('cloudstorage_upload_multipart', data_dict)
     upload_id, part_number, part_content = toolkit.get_or_bust(
-        data_dict, ['uploadId', 'partNumber', 'upload'])
+        data_dict,
+        ['uploadId', 'partNumber', 'upload']
+    )
 
     uploader = ResourceCloudStorage({})
     upload = model.Session.query(MultipartUpload).get(upload_id)
+    data=bytearray(_get_underlying_file(part_content).read())
 
     resp = uploader.driver.connection.request(
         _get_object_url(
-            uploader, upload.name) + '?partNumber={0}&uploadId={1}'.format(
-                part_number, upload_id),
+            uploader,
+            upload.name
+        ),
+        params={
+            'uploadId': upload_id,
+            'partNumber': part_number
+        },
         method='PUT',
-        data=bytearray(_get_underlying_file(part_content).read())
+        data=data,
+        headers={
+            'Content-Length': len(data)
+        }
     )
+
     if resp.status != 200:
         raise toolkit.ValidationError('Upload failed: part %s' % part_number)
 
     _save_part_info(part_number, resp.headers['etag'], upload)
+
     return {
         'partNumber': part_number,
         'ETag': resp.headers['etag']
@@ -192,6 +199,7 @@ def finish_multipart(context, data_dict):
 
     h.check_access('cloudstorage_finish_multipart', data_dict)
     upload_id = toolkit.get_or_bust(data_dict, 'uploadId')
+    save_action = data_dict.get('save_action', False)
     upload = model.Session.query(MultipartUpload).get(upload_id)
     chunks = [
         (part.n, part.etag)
@@ -199,34 +207,41 @@ def finish_multipart(context, data_dict):
             upload_id=upload_id).order_by(MultipartPart.n)
     ]
     uploader = ResourceCloudStorage({})
+
     try:
         obj = uploader.container.get_object(upload.name)
         obj.delete()
     except Exception:
         pass
+
     uploader.driver._commit_multipart(
-        _get_object_url(uploader, upload.name),
-        upload_id,
-        chunks)
+        container=uploader.container,
+        object_name=upload.name,
+        upload_id=upload_id,
+        chunks=chunks
+    )
+
     upload.delete()
     upload.commit()
 
-    try:
-        res_dict = toolkit.get_action('resource_show')(
-            context.copy(), {'id': data_dict.get('id')})
-        pkg_dict = toolkit.get_action('package_show')(
-            context.copy(), {'id': res_dict['package_id']})
+    if save_action and save_action == "go-metadata":
+        try:
+            res_dict = toolkit.get_action('resource_show')(
+                context.copy(), {'id': data_dict.get('id')})
+            pkg_dict = toolkit.get_action('package_show')(
+                context.copy(), {'id': res_dict['package_id']})
 
-        if pkg_dict['state'] == 'draft' and not toolkit.asbool(data_dict.get('keepDraft')):
-            toolkit.get_action('package_patch')(
-                dict(context.copy(), allow_state_change=True),
-                dict(id=pkg_dict['id'], state='active')
-            )
+            if pkg_dict['state'] == 'draft' and not toolkit.asbool(data_dict.get('keepDraft')):
+                toolkit.get_action('package_patch')(
+                    dict(context.copy(), allow_state_change=True),
+                    dict(id=pkg_dict['id'], state='active')
+                )
 
-        res_dict.pop('upload_in_progress', None)
-        toolkit.get_action('resource_update')(context.copy(), res_dict)
-    except Exception as e:
-        log.error(e)
+            res_dict.pop('upload_in_progress', None)
+            toolkit.get_action('resource_update')(context.copy(), res_dict)
+        except Exception as e:
+            log.error(e)
+
     return {'commited': True}
 
 

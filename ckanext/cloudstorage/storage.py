@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import cgi
+import mimetypes
 import os.path
 import urlparse
 from ast import literal_eval
@@ -12,6 +13,7 @@ from pylons import config
 from ckan import model
 from ckan.lib import munge
 from ckan.plugins.toolkit import get_action
+import ckan.plugins as p
 
 from libcloud.storage.types import Provider, ObjectDoesNotExistError
 from libcloud.storage.providers import get_driver
@@ -148,7 +150,9 @@ class CloudStorage(object):
         `True` if ckanext-cloudstroage is configured to generate secure
         one-time URLs to resources, `False` otherwise.
         """
-        return bool(int(config.get('ckanext.cloudstorage.use_secure_urls', 0)))
+        return p.toolkit.asbool(
+            config.get('ckanext.cloudstorage.use_secure_urls', False)
+        )
 
     @property
     def aws_use_boto3_sessions(self):
@@ -166,7 +170,9 @@ class CloudStorage(object):
         provider instead of removing them when a resource/package is deleted,
         otherwise `False`.
         """
-        return bool(int(config.get('ckanext.cloudstorage.leave_files', 0)))
+        return p.toolkit.asbool(
+            config.get('ckanext.cloudstorage.leave_files', False)
+        )
 
     @property
     def can_use_advanced_azure(self):
@@ -206,6 +212,16 @@ class CloudStorage(object):
                 pass
 
         return False
+
+    @property
+    def guess_mimetype(self):
+        """
+        `True` if ckanext-cloudstorage is configured to guess mime types,
+        `False` otherwise.
+        """
+        return p.toolkit.asbool(
+            config.get('ckanext.cloudstorage.guess_mimetype', False)
+        )
 
 
 class ResourceCloudStorage(CloudStorage):
@@ -280,17 +296,43 @@ class ResourceCloudStorage(CloudStorage):
         """
         if self.filename:
 
-            # TODO: This might not be needed once libcloud is upgraded
-            if isinstance(self.file_upload, SpooledTemporaryFile):
-                self.file_upload.next = self.file_upload.next()
+            if self.can_use_advanced_azure:
+                from azure.storage import blob as azure_blob
+                from azure.storage.blob.models import ContentSettings
 
-            self.container.upload_object_via_stream(
-                self.file_upload,
-                object_name=self.path_from_filename(
-                    id,
-                    self.filename
+                blob_service = azure_blob.BlockBlobService(
+                    self.driver_options['key'],
+                    self.driver_options['secret']
                 )
-            )
+                content_settings = None
+                if self.guess_mimetype:
+                    content_type, _ = mimetypes.guess_type(self.filename)
+                    if content_type:
+                        content_settings = ContentSettings(
+                            content_type=content_type
+                        )
+
+                return blob_service.create_blob_from_stream(
+                    container_name=self.container_name,
+                    blob_name=self.path_from_filename(
+                        id,
+                        self.filename
+                    ),
+                    stream=self.file_upload,
+                    content_settings=content_settings
+                )
+            else:
+                # TODO: This might not be needed once libcloud is upgraded
+                if isinstance(self.file_upload, SpooledTemporaryFile):
+                    self.file_upload.next = self.file_upload.next()
+
+                self.container.upload_object_via_stream(
+                    self.file_upload,
+                    object_name=self.path_from_filename(
+                        id,
+                        self.filename
+                    )
+                )
 
         elif self._clear and self.old_filename and not self.leave_files:
             # This is only set when a previously-uploaded file is replace
@@ -310,7 +352,7 @@ class ResourceCloudStorage(CloudStorage):
                 # outstanding lease.
                 return
 
-    def get_url_from_filename(self, rid, filename):
+    def get_url_from_filename(self, rid, filename, content_type=None):
         """
         Retrieve a publically accessible URL for the given resource_id
         and filename.
@@ -322,6 +364,7 @@ class ResourceCloudStorage(CloudStorage):
 
         :param rid: The resource ID.
         :param filename: The resource filename.
+        :param content_type: Optionally a Content-Type header.
 
         :returns: Externally accessible URL or None.
         """
@@ -351,19 +394,22 @@ class ResourceCloudStorage(CloudStorage):
         elif self.can_use_advanced_aws and self.use_secure_urls:
 
             from boto.s3.connection import S3Connection
+            os.environ['S3_USE_SIGV4'] = 'True'
             s3_connection = S3Connection(
                 aws_access_key_id=self.driver_options['key'],
                 aws_secret_access_key=self.driver_options['secret'],
-                security_token=self.driver_options['token']
+                security_token=self.driver_options['token'],
+                host='s3.eu-west-1.amazonaws.com'
             )
 
-            return s3_connection.generate_url(
-                expires_in=60 * 60,
-                method='GET',
-                bucket=self.container_name,
-                query_auth=True,
-                key=path
-            )
+            generate_url_params = {"expires_in": 60 * 60,
+                                   "method": "GET",
+                                   "bucket": self.container_name,
+                                   "key": path}
+            if content_type:
+                generate_url_params['headers'] = {"Content-Type": content_type}
+
+            return s3_connection.generate_url_sigv4(**generate_url_params)
 
         # Find the object for the given key.
         obj = self.container.get_object(path)

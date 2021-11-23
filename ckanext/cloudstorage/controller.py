@@ -6,7 +6,8 @@ from pylons import c
 from pylons.i18n import _
 
 from ckan import logic, model
-from ckan.lib import base, uploader, helpers
+from ckan.lib import base, uploader
+import ckan.lib.helpers as h
 
 
 class StorageController(base.BaseController):
@@ -36,18 +37,27 @@ class StorageController(base.BaseController):
             url = resource.get('url')
             if not url:
                 base.abort(404, _('No download is available'))
-            helpers.redirect_to(url)
+            h.redirect_to(url)
 
         if filename is None:
             # No filename was provided so we'll try to get one from the url.
             filename = os.path.basename(resource['url'])
 
         upload = uploader.get_resource_uploader(resource)
-        uploaded_url = upload.get_url_from_filename(resource['id'], filename)
+
+        # if the client requests with a Content-Type header (e.g. Text preview)
+        # we have to add the header to the signature
+        try:
+            content_type = getattr(c.pylons.request, "content_type", None)
+        except AttributeError:
+            content_type = None
+        uploaded_url = upload.get_url_from_filename(resource['id'], filename,
+                                                    content_type=content_type)
 
         # The uploaded file is missing for some reason, such as the
         # provider being down.
         if uploaded_url is None:
             base.abort(404, _('No download is available'))
 
-        helpers.redirect_to(uploaded_url)
+        h.redirect_to(uploaded_url)
+
