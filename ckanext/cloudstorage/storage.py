@@ -3,7 +3,7 @@
 import cgi
 import mimetypes
 import os.path
-import urlparse
+from six.moves.urllib.parse import urlparse
 from ast import literal_eval
 from datetime import datetime, timedelta
 from time import time
