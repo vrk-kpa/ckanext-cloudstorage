@@ -13,10 +13,8 @@ from ckanext.cloudstorage.storage import (
     CloudStorage,
     ResourceCloudStorage
 )
-from ckanext.cloudstorage.model import (
-    create_tables,
-    drop_tables
-)
+
+from ckanext.cloudstorage import utils
 
 from ckan.logic import NotFound
 
@@ -167,6 +165,4 @@ def _fix_cors(args):
 
 
 def _initdb():
-    drop_tables()
-    create_tables()
-    print("DB tables are reinitialized")
+    utils.initdb()
