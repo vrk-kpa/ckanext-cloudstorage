@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import ckan.plugins as p
-from . import views, cli
+from ckanext.cloudstorage import views, cli
 
 
 class MixinPlugin(p.SingletonPlugin):
