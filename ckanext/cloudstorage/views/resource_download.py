@@ -58,8 +58,9 @@ def resource_download(id, resource_id, filename= None):
     # provider being down.
     if uploaded_url is None:
         base.abort(404, _('No download is available'))
-
-    return h.redirect_to(uploaded_url)
+    
+    return  h.redirect_to(uploaded_url)
+    
 
 
 resource_blueprint.add_url_rule(
