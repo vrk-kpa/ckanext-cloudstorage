@@ -6,6 +6,10 @@ from ckanext.cloudstorage import storage
 from ckanext.cloudstorage import helpers
 import ckanext.cloudstorage.logic.action.multipart as m_action
 import ckanext.cloudstorage.logic.auth.multipart as m_auth
+from ckanext.cloudstorage import views
+import logging
+
+log = logging.getLogger(__name__)
 
 if plugins.toolkit.check_ckan_version(min_version='2.9.0'):
     from ckanext.cloudstorage.plugin.flask_plugin import MixinPlugin
@@ -15,7 +19,6 @@ else:
 
 class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.IUploader)
-    plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IConfigurable)
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IActions)

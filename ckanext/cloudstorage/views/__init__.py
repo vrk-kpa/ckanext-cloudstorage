@@ -1,0 +1,1 @@
+from .resource_download import resource_blueprint
