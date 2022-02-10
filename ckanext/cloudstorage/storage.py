@@ -319,7 +319,7 @@ class ResourceCloudStorage(CloudStorage):
                                                                     self.filename
                                                                 ))
                 stream = self.file_upload
-                blob_client.upload_blob(stream)
+                blob_client.upload_blob(stream, overwrite=True)
                 if self.guess_mimetype:
                     content_type, _ = mimetypes.guess_type(self.filename)
                     if content_type:
