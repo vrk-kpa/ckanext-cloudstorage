@@ -257,10 +257,11 @@ class ResourceCloudStorage(CloudStorage):
 
         # Check to see if a file has been provided
         if isinstance(upload_field_storage, (ALLOWED_UPLOAD_TYPES)):
-            self.filename = munge.munge_filename(upload_field_storage.filename)
-            self.file_upload = _get_underlying_file(upload_field_storage)
-            resource['url'] = self.filename
-            resource['url_type'] = 'upload'
+            if len(upload_field_storage.filename):
+                self.filename = munge.munge_filename(upload_field_storage.filename)
+                self.file_upload = _get_underlying_file(upload_field_storage)
+                resource['url'] = self.filename
+                resource['url_type'] = 'upload'
         elif multipart_name and self.can_use_advanced_aws:
             # This means that file was successfully uploaded and stored
             # at cloud.
@@ -307,7 +308,6 @@ class ResourceCloudStorage(CloudStorage):
         :param max_size: Ignored.
         """
         if self.filename:
-
             if self.can_use_advanced_azure:
                 from azure.storage.blob import ContentSettings  # type: ignore
                 from azure.storage.blob import BlobServiceClient
