@@ -322,17 +322,25 @@ class ResourceCloudStorage(CloudStorage):
                     content_settings=content_settings
                 )
             else:
-                # TODO: This might not be needed once libcloud is upgraded
+                # If it's temporary file, we'd better convert it
+                # into FileIO. Otherwise libcloud will iterate
+                # over lines, not over chunks and it will really
+                # slow down the process for files that consist of
+                # millions of short linew
                 if isinstance(self.file_upload, SpooledTemporaryFile):
-                    self.file_upload.next = self.file_upload.next()
+                    self.file_upload.rollover()
+                    try:
+                        # extract underlying file
+                        file_upload_iter = self.file_upload._file.detach()
+                    except AttributeError:
+                        # It's python2
+                        file_upload_iter = self.file_upload._file
+                else:
+                    file_upload_iter = iter(self.file_upload)
 
-                self.container.upload_object_via_stream(
-                    self.file_upload,
-                    object_name=self.path_from_filename(
-                        id,
-                        self.filename
-                    )
-                )
+                object_name = self.path_from_filename(id, self.filename)
+                self.container.upload_object_via_stream(iterator=file_upload_iter,
+                                                        object_name=object_name)
 
         elif self._clear and self.old_filename and not self.leave_files:
             # This is only set when a previously-uploaded file is replace
