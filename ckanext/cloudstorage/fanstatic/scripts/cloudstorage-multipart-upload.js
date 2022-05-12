@@ -246,17 +246,18 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             }
             event.preventDefault();
 
-            try {
-                this._onDisableSave(true);
-                this._pressedSaveButton = event.target.value;
-                this._onSaveForm();
-            } catch(error){
-                console.log(error);
+            var dataset_id = this.options.packageId;
+            this._btnClick = $(event.target).attr('value');
+            if (this._btnClick == 'go-dataset') {
+
                 this._onDisableSave(false);
-                this._redirect_url = this.sandbox.url(
+                var redirect_url = this.sandbox.url(
                     '/dataset/edit/' +
                     dataset_id);
-                window.location = this._redirect_url;
+
+                window.setTimeout(function(){
+                    window.location = redirect_url;
+                }, 1000);
             } else {
                 try{
                     this._onDisableSave(true);
