@@ -154,7 +154,7 @@ def upload_multipart(context, data_dict):
 
     uploader = ResourceCloudStorage({})
     upload = model.Session.query(MultipartUpload).get(upload_id)
-    data = bytearray(_get_underlying_file(part_content).read())
+    data = _get_underlying_file(part_content).read()
 
     resp = uploader.driver.connection.request(
         _get_object_url(
