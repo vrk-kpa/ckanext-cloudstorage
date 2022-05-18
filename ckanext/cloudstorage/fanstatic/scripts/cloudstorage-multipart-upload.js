@@ -246,29 +246,14 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             }
             event.preventDefault();
 
-            var dataset_id = this.options.packageId;
-            this._btnClick = $(event.target).attr('value');
-            if (this._btnClick == 'go-dataset') {
-
+            try{
+                this._onDisableSave(true);
+                this._pressedSaveButton = $(event.target).attr('value');
+                this._onSaveForm();
+            } catch(error){
+                console.log(error);
                 this._onDisableSave(false);
-                var redirect_url = this.sandbox.url(
-                    '/dataset/edit/' +
-                    dataset_id);
-
-                window.setTimeout(function(){
-                    window.location = redirect_url;
-                }, 1000);
-            } else {
-                try{
-                    this._onDisableSave(true);
-                    this._onSaveForm();
-                } catch(error){
-                    console.log(error);
-                    this._onDisableSave(false);
-                }
             }
-
-            // this._form.trigger('submit', true);
         },
 
         _onSaveForm: function() {
@@ -378,7 +363,8 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                 {
                     'uploadId': this._uploadId,
                     'id': this._resourceId,
-                    'keepDraft': keepDraft
+                    'keepDraft': keepDraft,
+                    'save_action': this._pressedSaveButton
                 },
                 function (data) {
 
