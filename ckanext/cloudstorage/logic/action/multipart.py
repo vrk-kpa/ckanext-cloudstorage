@@ -224,7 +224,6 @@ def finish_multipart(context, data_dict):
     upload.delete()
     upload.commit()
 
-    log.info(save_action)
     if save_action and save_action == "go-metadata":
         try:
             res_dict = toolkit.get_action('resource_show')(
@@ -232,7 +231,6 @@ def finish_multipart(context, data_dict):
             pkg_dict = toolkit.get_action('package_show')(
                 context.copy(), {'id': res_dict['package_id']})
 
-            log.info(toolkit.asbool(data_dict.get('keepDraft')))
             if pkg_dict['state'] == 'draft' and not toolkit.asbool(data_dict.get('keepDraft')):
                 toolkit.get_action('package_patch')(
                     dict(context.copy(), allow_state_change=True),

@@ -21,8 +21,7 @@ from libcloud.storage.providers import get_driver
 
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
 ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
-import logging
-log = logging.getLogger(__name__)
+
 
 def _get_underlying_file(wrapper):
     if isinstance(wrapper, FlaskFileStorage):
@@ -296,6 +295,7 @@ class ResourceCloudStorage(CloudStorage):
         :param max_size: Ignored.
         """
         if self.filename:
+
             if self.can_use_advanced_azure:
                 from azure.storage import blob as azure_blob
                 from azure.storage.blob.models import ContentSettings
