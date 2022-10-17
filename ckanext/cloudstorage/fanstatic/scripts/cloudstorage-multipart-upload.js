@@ -380,21 +380,21 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         );
 
                         let package_type = 'dataset' //Default type 
-                        // Get the package type using package_show
-                        $.ajax({
-                            method: 'POST',
-                            url: ref_client.url('/api/3/action/package_show'),
-                            data: JSON.stringify({
-                                id: self._packageId,
-                            }),
-                            success: function(data){
+                        // Get the package type 
+                        ref_client.call(
+                            'POST',
+                            'package_show',
+                            {
+                                'id': self._packageId
+                            },
+                            function (data){
                                 try {
                                     // try to parse type from the results
                                     package_type = data.result.type;
-                                } catch (error) {
+                                }
+                                catch (error) {
                                     console.log(error);
                                 }
-
                                 // self._form.remove();
                                 if (self._pressedSaveButton == 'again') {
                                     var path = `/${package_type}/new_resource/`;
@@ -404,7 +404,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                                     var path = `/${package_type}/`;
                                 }
                                 var redirect_url = self.sandbox.url(path + self._packageId);
-        
+
                                 self._form.attr('action', redirect_url);
                                 self._form.attr('method', 'GET');
                                 self.$('[name]').attr('name', null);
@@ -413,10 +413,10 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                                 }, 3000);
 
                             },
-                            error: function(error){
+                            function (error){
                                 console.log(error);
                             }
-                        });
+                        );
                     }
                 },
                 function (err) {
