@@ -1,3 +1,8 @@
+{% with version = h.ckan_version() %}
+{% set type = 'asset' if h.ckan_version().split('.')|map('int')|list >= [2, 9, 0] else 'resource' %}
+{% include 'cloudstorage/snippets/cloudstorage-js_' ~ type ~ '.html' %}
+{% endwith %}
+
 <div
     {% if h.cloudstorage_use_secure_urls() -%}
         data-module="cloudstorage-multipart-upload"

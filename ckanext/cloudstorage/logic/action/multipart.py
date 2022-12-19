@@ -3,7 +3,7 @@
 import logging
 import datetime
 
-from pylons import config
+from ckan.plugins.toolkit import config
 from sqlalchemy.orm.exc import NoResultFound
 import ckan.model as model
 import ckan.lib.helpers as h
@@ -103,7 +103,7 @@ def initiate_multipart(context, data_dict):
     res_dict = toolkit.get_action('resource_show')(
         context.copy(), {'id': data_dict.get('id')})
     res_dict['upload_in_progress'] = True
-    toolkit.get_action('resource_patch')(context.copy(),res_dict)
+    toolkit.get_action('resource_patch')(context.copy(), res_dict)
 
     uploader = ResourceCloudStorage({'multipart_name': name})
     res_name = uploader.path_from_filename(id, name)
@@ -154,7 +154,7 @@ def upload_multipart(context, data_dict):
 
     uploader = ResourceCloudStorage({})
     upload = model.Session.query(MultipartUpload).get(upload_id)
-    data = part_content.file.read()
+    data = _get_underlying_file(part_content).read()
 
     resp = uploader.driver.connection.request(
         _get_object_url(
@@ -191,6 +191,7 @@ def finish_multipart(context, data_dict):
 
     :param context:
     :param data_dict: dict with required key `uploadId` - id of Multipart Upload that should be finished
+    :param keepDraft: true if dataset should be kept as a draft after the file is uploaded
     :returns: None
     :rtype: NoneType
 
@@ -229,14 +230,15 @@ def finish_multipart(context, data_dict):
                 context.copy(), {'id': data_dict.get('id')})
             pkg_dict = toolkit.get_action('package_show')(
                 context.copy(), {'id': res_dict['package_id']})
-            if pkg_dict['state'] == 'draft':
+
+            if pkg_dict['state'] == 'draft' and not toolkit.asbool(data_dict.get('keepDraft')):
                 toolkit.get_action('package_patch')(
                     dict(context.copy(), allow_state_change=True),
                     dict(id=pkg_dict['id'], state='active')
                 )
 
             res_dict.pop('upload_in_progress', None)
-            toolkit.get_action('resource_update')(context.copy(),res_dict)
+            toolkit.get_action('resource_update')(context.copy(), res_dict)
         except Exception as e:
             log.error(e)
 

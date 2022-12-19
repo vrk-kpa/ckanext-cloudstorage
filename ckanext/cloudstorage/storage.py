@@ -3,11 +3,13 @@
 import cgi
 import mimetypes
 import os.path
-import urlparse
+from six.moves.urllib.parse import urlparse
 from ast import literal_eval
 from datetime import datetime, timedelta
+from time import time
+from tempfile import SpooledTemporaryFile
 
-from pylons import config
+from ckan.plugins.toolkit import config
 from ckan import model
 from ckan.lib import munge
 from ckan.plugins.toolkit import get_action
@@ -31,7 +33,10 @@ class CloudStorage(object):
     def __init__(self):
         self._driver_options = literal_eval(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options:
-            self.authenticate_with_aws()
+            if self.aws_use_boto3_sessions:
+                self.authenticate_with_aws_boto3()
+            else:
+                self.authenticate_with_aws()
 
         self.driver = get_driver(
             getattr(
@@ -42,7 +47,7 @@ class CloudStorage(object):
         self._container = None
 
     def path_from_filename(self, rid, filename):
-        raise NotImplemented
+        raise NotImplementedError
 
     def authenticate_with_aws(self):
         import requests
@@ -63,6 +68,28 @@ class CloudStorage(object):
         )(**self.driver_options)
         self._container = None
 
+    def authenticate_with_aws_boto3(self):
+        """
+        TTL max 900 seconds for IAM role session
+        https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html#id_roles_use_view-role-max-session
+        """
+        import boto3
+        session = boto3.Session()
+        credentials = session.get_credentials()
+        current_credentials = credentials.get_frozen_credentials()
+        self.driver_options = {'key': current_credentials.access_key,
+                               'secret': current_credentials.secret_key,
+                               'token': current_credentials.token,
+                               'expires': datetime.fromtimestamp(time() + 900).strftime('%Y-%m-%dT%H:%M:%SZ')}
+
+        self.driver = get_driver(
+            getattr(
+                Provider,
+                self.driver_name
+            )
+        )(**self.driver_options)
+        self._container = None
+
     @property
     def container(self):
         """
@@ -70,8 +97,11 @@ class CloudStorage(object):
         """
         if self.driver_options.get('expires'):
             expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
-            if  expires < datetime.utcnow():
-                self.authenticate_with_aws()
+            if expires < datetime.utcnow():
+                if self.aws_use_boto3_sessions:
+                    self.authenticate_with_aws_boto3()
+                else:
+                    self.authenticate_with_aws()
 
         if self._container is None:
             self._container = self.driver.get_container(
@@ -123,6 +153,15 @@ class CloudStorage(object):
         return p.toolkit.asbool(
             config.get('ckanext.cloudstorage.use_secure_urls', False)
         )
+
+    @property
+    def aws_use_boto3_sessions(self):
+        """
+        'True' if ckanext-cloudstorage is configured to use boto3 instead of
+        boto for AWS IAM sessions. This makes session creation possible on
+        platforms like AWS ECS Fargate or AWS Lambda.
+        """
+        return bool(int(config.get('ckanext.cloudstorage.aws_use_boto3_sessions', 0)))
 
     @property
     def leave_files(self):
@@ -205,7 +244,7 @@ class ResourceCloudStorage(CloudStorage):
         multipart_name = resource.pop('multipart_name', None)
 
         # Check to see if a file has been provided
-        if isinstance(upload_field_storage, (ALLOWED_UPLOAD_TYPES)):
+        if bool(upload_field_storage) and isinstance(upload_field_storage, ALLOWED_UPLOAD_TYPES):
             self.filename = munge.munge_filename(upload_field_storage.filename)
             self.file_upload = _get_underlying_file(upload_field_storage)
             resource['url'] = self.filename
@@ -256,6 +295,7 @@ class ResourceCloudStorage(CloudStorage):
         :param max_size: Ignored.
         """
         if self.filename:
+
             if self.can_use_advanced_azure:
                 from azure.storage import blob as azure_blob
                 from azure.storage.blob.models import ContentSettings
@@ -282,13 +322,25 @@ class ResourceCloudStorage(CloudStorage):
                     content_settings=content_settings
                 )
             else:
-                self.container.upload_object_via_stream(
-                    self.file_upload,
-                    object_name=self.path_from_filename(
-                        id,
-                        self.filename
-                    )
-                )
+                # If it's temporary file, we'd better convert it
+                # into FileIO. Otherwise libcloud will iterate
+                # over lines, not over chunks and it will really
+                # slow down the process for files that consist of
+                # millions of short linew
+                if isinstance(self.file_upload, SpooledTemporaryFile):
+                    self.file_upload.rollover()
+                    try:
+                        # extract underlying file
+                        file_upload_iter = self.file_upload._file.detach()
+                    except AttributeError:
+                        # It's python2
+                        file_upload_iter = self.file_upload._file
+                else:
+                    file_upload_iter = iter(self.file_upload)
+
+                object_name = self.path_from_filename(id, self.filename)
+                self.container.upload_object_via_stream(iterator=file_upload_iter,
+                                                        object_name=object_name)
 
         elif self._clear and self.old_filename and not self.leave_files:
             # This is only set when a previously-uploaded file is replace

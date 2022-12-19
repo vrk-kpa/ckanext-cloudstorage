@@ -44,6 +44,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._progress.insertAfter(this._url.parent().parent());
             this._resumeBtn = $('<a>', {class: 'hidden btn btn-info controls'}).insertAfter(
                 this._progress).text('Resume Upload');
+            this._pressedSaveButton = null;
 
             var self = this;
 
@@ -244,25 +245,15 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                 return;
             }
             event.preventDefault();
-            var dataset_id = this.options.packageId;
-            this._clickedBtn = $(event.target).attr('value');
-            if (this._clickedBtn == 'go-dataset') {
-                this._onDisableSave(false);
-                this._redirect_url = this.sandbox.url(
-                    '/dataset/edit/' +
-                    dataset_id);
-                window.location = this._redirect_url;
-            } else {
-                try{
-                    this._onDisableSave(true);
-                    this._onSaveForm();
-                } catch(error){
-                    console.log(error);
-                    this._onDisableSave(false);
-                }
-            }
 
-            // this._form.trigger('submit', true);
+            try{
+                this._onDisableSave(true);
+                this._pressedSaveButton = $(event.target).attr('value');
+                this._onSaveForm();
+            } catch(error){
+                console.log(error);
+                this._onDisableSave(false);
+            }
         },
 
         _onSaveForm: function() {
@@ -365,15 +356,16 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
 
         _onFinishUpload: function() {
             var self = this;
-            var data_dict = {
-                'uploadId': this._uploadId,
-                'id': this._resourceId,
-                'save_action': this._clickedBtn
-            }
+            var keepDraft = this._pressedSaveButton == 'again' || this._pressedSaveButton == 'go-dataset';
             this.sandbox.client.call(
                 'POST',
                 'cloudstorage_finish_multipart',
-                data_dict,
+                {
+                    'uploadId': this._uploadId,
+                    'id': this._resourceId,
+                    'keepDraft': keepDraft,
+                    'save_action': this._pressedSaveButton
+                },
                 function (data) {
 
                     self._progress.hide('fast');
@@ -386,18 +378,16 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                             'success'
                         );
                         // self._form.remove();
-                        if (self._clickedBtn == 'again') {
-                            this._redirect_url = self.sandbox.url(
-                                '/dataset/new_resource/' +
-                                self._packageId
-                            );
+                        if (self._pressedSaveButton == 'again') {
+                            var path = '/dataset/new_resource/';
+                        } else if (self._pressedSaveButton == 'go-dataset') {
+                            var path = '/dataset/edit/';
                         } else {
-                            this._redirect_url = self.sandbox.url(
-                                '/dataset/' +
-                                self._packageId
-                            );
+                            var path = '/dataset/';
                         }
-                        self._form.attr('action', this._redirect_url);
+                        var redirect_url = self.sandbox.url(path + self._packageId);
+
+                        self._form.attr('action', redirect_url);
                         self._form.attr('method', 'GET');
                         self.$('[name]').attr('name', null);
                         setTimeout(function(){
