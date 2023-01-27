@@ -357,6 +357,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
         _onFinishUpload: function() {
             var self = this;
             var keepDraft = this._pressedSaveButton == 'again' || this._pressedSaveButton == 'go-dataset';
+            let ref_client = this.sandbox.client;
             this.sandbox.client.call(
                 'POST',
                 'cloudstorage_finish_multipart',
@@ -377,23 +378,45 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                             self.i18n('upload_completed'),
                             'success'
                         );
-                        // self._form.remove();
-                        if (self._pressedSaveButton == 'again') {
-                            var path = '/dataset/new_resource/';
-                        } else if (self._pressedSaveButton == 'go-dataset') {
-                            var path = '/dataset/edit/';
-                        } else {
-                            var path = '/dataset/';
-                        }
-                        var redirect_url = self.sandbox.url(path + self._packageId);
 
-                        self._form.attr('action', redirect_url);
-                        self._form.attr('method', 'GET');
-                        self.$('[name]').attr('name', null);
-                        setTimeout(function(){
-                            self._form.submit();
-                        }, 3000);
+                        let package_type = 'dataset' //Default type 
+                        // Get the package type 
+                        ref_client.call(
+                            'POST',
+                            'package_show',
+                            {
+                                'id': self._packageId
+                            },
+                            function (data){
+                                try {
+                                    // try to parse type from the results
+                                    package_type = data.result.type;
+                                }
+                                catch (error) {
+                                    console.log(error);
+                                }
+                                // self._form.remove();
+                                if (self._pressedSaveButton == 'again') {
+                                    var path = `/${package_type}/new_resource/`;
+                                } else if (self._pressedSaveButton == 'go-dataset') {
+                                    var path = `/${package_type}/edit/`;
+                                } else {
+                                    var path = `/${package_type}/`;
+                                }
+                                var redirect_url = self.sandbox.url(path + self._packageId);
 
+                                self._form.attr('action', redirect_url);
+                                self._form.attr('method', 'GET');
+                                self.$('[name]').attr('name', null);
+                                setTimeout(function(){
+                                    self._form.submit();
+                                }, 3000);
+
+                            },
+                            function (error){
+                                console.log(error);
+                            }
+                        );
                     }
                 },
                 function (err) {
