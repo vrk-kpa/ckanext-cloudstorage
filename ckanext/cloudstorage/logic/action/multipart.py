@@ -4,6 +4,7 @@ import logging
 import datetime
 
 from ckan.plugins.toolkit import config
+from ckan.plugins import plugin_loaded
 from sqlalchemy.orm.exc import NoResultFound
 import ckan.model as model
 import ckan.lib.helpers as h
@@ -102,6 +103,8 @@ def initiate_multipart(context, data_dict):
 
     res_dict = toolkit.get_action('resource_show')(
         context.copy(), {'id': data_dict.get('id')})
+
+    # Delay handling in archiver
     res_dict['upload_in_progress'] = True
     toolkit.get_action('resource_patch')(context.copy(), res_dict)
 
@@ -224,10 +227,12 @@ def finish_multipart(context, data_dict):
     upload.delete()
     upload.commit()
 
+    res_dict = toolkit.get_action('resource_show')(
+        context.copy(), {'id': data_dict.get('id')})
+
+    # Change draft state of package to active
     if save_action and save_action == "go-metadata":
         try:
-            res_dict = toolkit.get_action('resource_show')(
-                context.copy(), {'id': data_dict.get('id')})
             pkg_dict = toolkit.get_action('package_show')(
                 context.copy(), {'id': res_dict['package_id']})
 
@@ -237,10 +242,32 @@ def finish_multipart(context, data_dict):
                     dict(id=pkg_dict['id'], state='active')
                 )
 
-            res_dict.pop('upload_in_progress', None)
-            toolkit.get_action('resource_update')(context.copy(), res_dict)
         except Exception as e:
             log.error(e)
+
+    # Trigger handling in archiver
+    res_dict.pop('upload_in_progress', None)
+    toolkit.get_action('resource_update')(context.copy(), res_dict)
+
+    # Submit to datapusher, uses custom config variable which is not triggered automatically in ckan
+    if plugin_loaded('datapusher'):
+        resource_format = res_dict.get('format')
+        supported_formats = toolkit.config.get(
+            'ckanext.cloudstorage.datapusher.formats'
+        )
+
+        submit = (
+            resource_format
+            and resource_format.lower() in supported_formats
+            and res_dict.get('url_type') != u'datapusher'
+        )
+
+        if submit:
+            toolkit.get_action(u'datapusher_submit')(
+                context, {
+                    u'resource_id': res_dict['id']
+                }
+            )
 
     return {'commited': True}
 
