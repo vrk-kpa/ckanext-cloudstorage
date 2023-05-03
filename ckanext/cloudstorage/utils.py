@@ -173,7 +173,7 @@ def submit_to_datapusher(resource_id=None, res_dict=None):
     # Submit to datapusher, uses custom config variable which is not triggered automatically in ckan
     if plugin_loaded('datapusher'):
         if not res_dict:
-            res_dict = tk.get_action('resource_show')({}, {'id': resource_id})
+            res_dict = tk.get_action('resource_show')({'ignore_auth': True}, {'id': resource_id})
 
         resource_format = res_dict.get('format')
         supported_formats = tk.config.get(
