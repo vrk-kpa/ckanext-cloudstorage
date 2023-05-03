@@ -87,7 +87,7 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
 
     # IResourceController
 
-    def before_delete(self, context, resource, resources):
+    def before_dataset_delete(self, context, resource, resources):
         # let's get all info about our resource. It somewhere in resources
         # but if there is some possibility that it isn't(magic?) we have
         # `else` clause
