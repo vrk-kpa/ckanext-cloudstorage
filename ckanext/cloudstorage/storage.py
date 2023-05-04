@@ -18,7 +18,7 @@ import ckan.plugins as p
 from libcloud.storage.types import Provider, ObjectDoesNotExistError
 from libcloud.storage.providers import get_driver
 
-
+from .utils import submit_to_datapusher
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
 ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
 
@@ -341,6 +341,8 @@ class ResourceCloudStorage(CloudStorage):
                 object_name = self.path_from_filename(id, self.filename)
                 self.container.upload_object_via_stream(iterator=file_upload_iter,
                                                         object_name=object_name)
+
+                submit_to_datapusher(resource_id=id)
 
         elif self._clear and self.old_filename and not self.leave_files:
             # This is only set when a previously-uploaded file is replace
