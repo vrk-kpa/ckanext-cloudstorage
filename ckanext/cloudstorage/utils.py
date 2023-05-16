@@ -17,6 +17,9 @@ from ckanext.cloudstorage.model import (create_tables, drop_tables)
 import ckanext.cloudstorage.storage as storage
 
 
+import logging
+log = logging.getLogger(__name__)
+
 if tk.check_ckan_version("2.9"):
     from werkzeug.datastructures import FileStorage as FakeFileStorage
 else:
@@ -187,8 +190,12 @@ def submit_to_datapusher(resource_id=None, res_dict=None):
         )
 
         if submit:
-            tk.get_action(u'datapusher_submit')(
-                {'ignore_auth': True}, {
-                    u'resource_id': res_dict['id']
-                }
-            )
+            try:
+                tk.get_action(u'datapusher_submit')(
+                    {'ignore_auth': True}, {
+                        u'resource_id': res_dict['id']
+                    }
+                )
+            except tk.ValidationError as e:
+                log.info("There was an error in datapusher %s" % e)
+                pass
