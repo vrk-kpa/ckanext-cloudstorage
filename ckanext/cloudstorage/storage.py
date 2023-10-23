@@ -3,8 +3,9 @@
 import cgi
 import mimetypes
 import os.path
+
+import yaml
 from six.moves.urllib.parse import urlparse
-from ast import literal_eval
 from datetime import datetime, timedelta
 from time import time
 from tempfile import SpooledTemporaryFile
@@ -31,7 +32,7 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
-        self._driver_options = literal_eval(config['ckanext.cloudstorage.driver_options'])
+        self._driver_options = yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options:
             if self.aws_use_boto3_sessions:
                 self.authenticate_with_aws_boto3()
