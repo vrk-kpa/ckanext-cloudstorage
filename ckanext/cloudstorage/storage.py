@@ -3,8 +3,9 @@
 import cgi
 import mimetypes
 import os.path
+
+import yaml
 from six.moves.urllib.parse import urlparse
-from ast import literal_eval
 from datetime import datetime, timedelta
 from time import time
 from tempfile import SpooledTemporaryFile
@@ -18,7 +19,7 @@ import ckan.plugins as p
 from libcloud.storage.types import Provider, ObjectDoesNotExistError
 from libcloud.storage.providers import get_driver
 
-
+from .utils import submit_to_datapusher
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
 ALLOWED_UPLOAD_TYPES = (cgi.FieldStorage, FlaskFileStorage)
 
@@ -31,7 +32,7 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
-        self._driver_options = literal_eval(config['ckanext.cloudstorage.driver_options'])
+        self._driver_options = yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options:
             if self.aws_use_boto3_sessions:
                 self.authenticate_with_aws_boto3()
@@ -249,12 +250,14 @@ class ResourceCloudStorage(CloudStorage):
             self.file_upload = _get_underlying_file(upload_field_storage)
             resource['url'] = self.filename
             resource['url_type'] = 'upload'
+            resource['last_modified'] = datetime.utcnow()
         elif multipart_name and self.can_use_advanced_aws:
             # This means that file was successfully uploaded and stored
             # at cloud.
             # Currently implemented just AWS version
             resource['url'] = munge.munge_filename(multipart_name)
             resource['url_type'] = 'upload'
+            resource['last_modified'] = datetime.utcnow()
         elif self._clear and resource.get('id'):
             # Apparently, this is a created-but-not-commited resource whose
             # file upload has been canceled. We're copying the behaviour of
@@ -267,6 +270,7 @@ class ResourceCloudStorage(CloudStorage):
 
             self.old_filename = old_resource.url
             resource['url_type'] = ''
+            resource['last_modified'] = datetime.utcnow()
 
     def path_from_filename(self, rid, filename):
         """
@@ -341,6 +345,8 @@ class ResourceCloudStorage(CloudStorage):
                 object_name = self.path_from_filename(id, self.filename)
                 self.container.upload_object_via_stream(iterator=file_upload_iter,
                                                         object_name=object_name)
+
+                submit_to_datapusher(resource_id=id)
 
         elif self._clear and self.old_filename and not self.leave_files:
             # This is only set when a previously-uploaded file is replace

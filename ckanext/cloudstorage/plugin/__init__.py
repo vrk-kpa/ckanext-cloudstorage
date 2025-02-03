@@ -15,7 +15,6 @@ else:
 
 class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.IUploader)
-    plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IConfigurable)
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IActions)
@@ -87,7 +86,11 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
 
     # IResourceController
 
+    # CKAN <2.10 compatibility
     def before_delete(self, context, resource, resources):
+        return self.before_dataset_delete(context, resource, resources)
+
+    def before_dataset_delete(self, context, resource, resources):
         # let's get all info about our resource. It somewhere in resources
         # but if there is some possibility that it isn't(magic?) we have
         # `else` clause

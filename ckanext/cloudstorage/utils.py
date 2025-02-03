@@ -7,14 +7,18 @@ from ckan import logic, model
 import ckan.plugins.toolkit as tk
 from ckan.lib import base, uploader
 import ckan.lib.helpers as h
+from ckan.plugins import plugin_loaded
 import cgi
 import tempfile
 from ckan.logic import NotFound
 from ckanapi import LocalCKAN
 
 from ckanext.cloudstorage.model import (create_tables, drop_tables)
-from ckanext.cloudstorage.storage import (CloudStorage, ResourceCloudStorage)
+import ckanext.cloudstorage.storage as storage
 
+
+import logging
+log = logging.getLogger(__name__)
 
 if tk.check_ckan_version("2.9"):
     from werkzeug.datastructures import FileStorage as FakeFileStorage
@@ -32,7 +36,7 @@ def initdb():
 
 
 def fix_cors(domains):
-    cs = CloudStorage()
+    cs = storage.CloudStorage()
 
     if cs.can_use_advanced_azure:
         from azure.storage import blob as azure_blob
@@ -105,7 +109,7 @@ def migrate(path, single_id):
             resource['upload'] = FakeFileStorage(
                 fin, resource['url'].split('/')[-1])
             try:
-                uploader = ResourceCloudStorage(resource)
+                uploader = storage.ResourceCloudStorage(resource)
                 uploader.upload(resource['id'])
             except Exception as e:
                 failed.append(resource_id)
@@ -167,3 +171,31 @@ def resource_download(id, resource_id, filename=None):
         return base.abort(404, tk._('No download is available'))
 
     return h.redirect_to(uploaded_url)
+
+def submit_to_datapusher(resource_id=None, res_dict=None):
+    # Submit to datapusher, uses custom config variable which is not triggered automatically in ckan
+    if plugin_loaded('datapusher'):
+        if not res_dict:
+            res_dict = tk.get_action('resource_show')({'ignore_auth': True}, {'id': resource_id})
+
+        resource_format = res_dict.get('format')
+        supported_formats = tk.config.get(
+            'ckanext.cloudstorage.datapusher.formats'
+        )
+
+        submit = (
+            resource_format
+            and resource_format.lower() in supported_formats
+            and res_dict.get('url_type') != u'datapusher'
+        )
+
+        if submit:
+            try:
+                tk.get_action(u'datapusher_submit')(
+                    {'ignore_auth': True}, {
+                        u'resource_id': res_dict['id']
+                    }
+                )
+            except tk.ValidationError as e:
+                log.info("There was an error in datapusher %s" % e)
+                pass

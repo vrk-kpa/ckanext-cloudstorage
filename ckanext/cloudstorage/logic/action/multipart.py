@@ -4,7 +4,6 @@ import logging
 import datetime
 
 from ckan.plugins.toolkit import config
-from ckan.plugins import plugin_loaded
 from sqlalchemy.orm.exc import NoResultFound
 import ckan.model as model
 import ckan.lib.helpers as h
@@ -12,6 +11,7 @@ import ckan.plugins.toolkit as toolkit
 
 from ckanext.cloudstorage.storage import ResourceCloudStorage
 from ckanext.cloudstorage.model import MultipartUpload, MultipartPart
+from ckanext.cloudstorage.utils import submit_to_datapusher
 from werkzeug.datastructures import FileStorage as FlaskFileStorage
 
 log = logging.getLogger(__name__)
@@ -249,25 +249,7 @@ def finish_multipart(context, data_dict):
     res_dict.pop('upload_in_progress', None)
     toolkit.get_action('resource_update')(context.copy(), res_dict)
 
-    # Submit to datapusher, uses custom config variable which is not triggered automatically in ckan
-    if plugin_loaded('datapusher'):
-        resource_format = res_dict.get('format')
-        supported_formats = toolkit.config.get(
-            'ckanext.cloudstorage.datapusher.formats'
-        )
-
-        submit = (
-            resource_format
-            and resource_format.lower() in supported_formats
-            and res_dict.get('url_type') != u'datapusher'
-        )
-
-        if submit:
-            toolkit.get_action(u'datapusher_submit')(
-                context, {
-                    u'resource_id': res_dict['id']
-                }
-            )
+    submit_to_datapusher(res_dict=res_dict)
 
     return {'commited': True}
 
