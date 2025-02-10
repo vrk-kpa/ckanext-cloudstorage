@@ -5,7 +5,7 @@ import mimetypes
 import os.path
 
 import yaml
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urlparse, urljoin
 from datetime import datetime, timedelta
 from time import time
 from tempfile import SpooledTemporaryFile
@@ -32,7 +32,6 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
-        self._driver_options = yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options:
             if self.aws_use_boto3_sessions:
                 self.authenticate_with_aws_boto3()
@@ -117,7 +116,7 @@ class CloudStorage(object):
         A dictionary of options ckanext-cloudstorage has been configured to
         pass to the apache-libcloud driver.
         """
-        return self._driver_options
+        return yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
 
     @driver_options.setter
     def driver_options(self, value):
@@ -385,6 +384,7 @@ class ResourceCloudStorage(CloudStorage):
         # Find the key the file *should* be stored at.
         path = self.path_from_filename(rid, filename)
 
+        print(path)
         # If advanced azure features are enabled, generate a temporary
         # shared access link instead of simply redirecting to the file.
         if self.can_use_advanced_azure and self.use_secure_urls:
@@ -426,7 +426,10 @@ class ResourceCloudStorage(CloudStorage):
             return s3_connection.generate_url_sigv4(**generate_url_params)
 
         # Find the object for the given key.
-        obj = self.container.get_object(path)
+        try:
+            obj = self.container.get_object(path)
+        except ObjectDoesNotExistError:
+            return
         if obj is None:
             return
 
@@ -435,7 +438,7 @@ class ResourceCloudStorage(CloudStorage):
             return self.driver.get_object_cdn_url(obj)
         except NotImplementedError:
             if 'S3' in self.driver_name:
-                return urlparse.urljoin(
+                return urljoin(
                     'https://' + self.driver.connection.host,
                     '{container}/{path}'.format(
                         container=self.container_name,
