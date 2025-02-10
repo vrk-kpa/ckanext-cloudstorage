@@ -5,7 +5,7 @@ import mimetypes
 import os.path
 
 import yaml
-from six.moves.urllib.parse import urlparse, urljoin
+from six.moves.urllib.parse import urljoin
 from datetime import datetime, timedelta
 from time import time
 from tempfile import SpooledTemporaryFile
