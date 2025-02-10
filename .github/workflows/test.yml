@@ -63,9 +63,9 @@ jobs:
       - name: Run tests
         run: pytest --ckan-ini=test.ini --cov=ckanext.cloudstorage --disable-warnings ckanext/cloudstorage/tests
 
-      #- name: install codecov requirements
-      #  run: |
-      #    apk add gpg gpg-agent
+      - name: install codecov requirements
+        run: |
+          apt install gpg curl
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
