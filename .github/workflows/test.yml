@@ -26,6 +26,8 @@ jobs:
 
     name: CKAN ${{ matrix.ckan-version }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     container:
       image: ${{ matrix.ckan-image }}
       options: --user root
