@@ -50,6 +50,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: configure AWS credentials for running tests
+        uses: aws-actions/configure-aws-credentials@v4
+        id: aws-credentials
+        with:
+          role-to-assume: ${{ secrets.AWS_TEST_ROLE }}
+          role-session-name: github-actions
+          aws-region: eu-west-1
+          output-credentials: true
+
       - name: Install requirements
         run: |
           pip install -r requirements.txt
@@ -62,6 +72,12 @@ jobs:
           ckan -c test.ini db init
       - name: Run tests
         run: pytest --ckan-ini=test.ini --cov=ckanext.cloudstorage --disable-warnings ckanext/cloudstorage/tests
+        env:
+          TEST_DRIVER: ${{ secrets.S3_REGION }}
+          TEST_CONTAINER: ${{ secrets.S3_BUCKET }}
+          TEST_DRIVER_OPTIONS: "{}AWS_ACCESS_KEY_ID: ${{ steps.aws-credentials.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws-credentials.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws-credentials.outputs.aws-session-token }}
 
       - name: install codecov requirements
         run: |
