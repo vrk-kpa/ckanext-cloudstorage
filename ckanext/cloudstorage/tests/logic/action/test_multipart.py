@@ -115,7 +115,7 @@ class TestMultipartUpload(object):
         storage = ResourceCloudStorage(res)
         url = storage.get_url_from_filename(res["id"], filename)
         assert url
-        print(url)
+
         assert requests.get(url).content == fp.getvalue()
 
 

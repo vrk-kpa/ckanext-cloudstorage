@@ -384,7 +384,6 @@ class ResourceCloudStorage(CloudStorage):
         # Find the key the file *should* be stored at.
         path = self.path_from_filename(rid, filename)
 
-        print(path)
         # If advanced azure features are enabled, generate a temporary
         # shared access link instead of simply redirecting to the file.
         if self.can_use_advanced_azure and self.use_secure_urls:

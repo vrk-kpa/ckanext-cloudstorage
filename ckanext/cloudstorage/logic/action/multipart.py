@@ -97,8 +97,6 @@ def initiate_multipart(context, data_dict):
 
     h.check_access('cloudstorage_initiate_multipart', data_dict)
     id, name, size = toolkit.get_or_bust(data_dict, ['id', 'name', 'size'])
-    print(id)
-    print(name)
     user_obj = model.User.get(context['user'])
     user_id = user_obj.id if user_obj else None
 
