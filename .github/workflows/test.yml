@@ -75,9 +75,7 @@ jobs:
         env:
           TEST_DRIVER: ${{ secrets.S3_REGION }}
           TEST_CONTAINER: ${{ secrets.S3_BUCKET }}
-          TEST_DRIVER_OPTIONS: "{}AWS_ACCESS_KEY_ID: ${{ steps.aws-credentials.outputs.aws-access-key-id }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.aws-credentials.outputs.aws-secret-access-key }}
-          AWS_SESSION_TOKEN: ${{ steps.aws-credentials.outputs.aws-session-token }}
+          TEST_DRIVER_OPTIONS: "{AWS_ACCESS_KEY_ID: ${{ steps.aws-credentials.outputs.aws-access-key-id }}, AWS_SECRET_ACCESS_KEY: ${{ steps.aws-credentials.outputs.aws-secret-access-key }}, AWS_SESSION_TOKEN: ${{ steps.aws-credentials.outputs.aws-session-token }} }"
 
       - name: install codecov requirements
         run: |
