@@ -24,3 +24,8 @@ filterwarnings = [
   "ignore::sqlalchemy.exc.SAWarning",
   "ignore::DeprecationWarning",
 ]
+
+[project.optional-dependencies]
+boto3 =  [
+  "boto3
+]
