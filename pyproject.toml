@@ -1,0 +1,26 @@
+[project]
+name = "ckanext-cloudstorage"
+version = "0.1.1"
+description = "Cloud storage for CKAN"
+readme = "README.md"
+authors = [
+  { name = "Tyler Kennedy", email = "tk@tkte.ch" }
+]
+license = {text = "MIT"}
+
+[project.urls]
+Homepage = "http://github.com/open-data/ckanext-cloudstorage"
+
+[project.entry-points."ckan.plugins"]
+cloudstorage = "ckanext.cloudstorage.plugin:CloudStoragePlugin"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore::sqlalchemy.exc.SADeprecationWarning",
+  "ignore::sqlalchemy.exc.SAWarning",
+  "ignore::DeprecationWarning",
+]
