@@ -32,11 +32,8 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
-        if 'S3' in self.driver_name and not self.driver_options:
-            if self.aws_use_boto3_sessions:
-                self.authenticate_with_aws_boto3()
-            else:
-                self.authenticate_with_aws()
+        if 'S3' in self.driver_name and not self.driver_options and self.aws_use_boto3_sessions:
+            self.authenticate_with_aws_boto3()
 
         self.driver = get_driver(
             getattr(
@@ -49,24 +46,6 @@ class CloudStorage(object):
     def path_from_filename(self, rid, filename):
         raise NotImplementedError
 
-    def authenticate_with_aws(self):
-        import requests
-        r = requests.get("http://169.254.169.254/latest/meta-data/iam/security-credentials/")
-        role = r.text
-        r = requests.get("http://169.254.169.254/latest/meta-data/iam/security-credentials/" + role)
-        credentials = r.json()
-        self.driver_options = {'key': credentials['AccessKeyId'],
-                               'secret': credentials['SecretAccessKey'],
-                               'token': credentials['Token'],
-                               'expires': credentials['Expiration']}
-
-        self.driver = get_driver(
-            getattr(
-                Provider,
-                self.driver_name
-            )
-        )(**self.driver_options)
-        self._container = None
 
     def authenticate_with_aws_boto3(self):
         """
@@ -161,7 +140,7 @@ class CloudStorage(object):
         boto for AWS IAM sessions. This makes session creation possible on
         platforms like AWS ECS Fargate or AWS Lambda.
         """
-        return bool(int(config.get('ckanext.cloudstorage.aws_use_boto3_sessions', 0)))
+        return p.toolkit.asbool(config.get('ckanext.cloudstorage.aws_use_boto3_sessions', False))
 
     @property
     def leave_files(self):
@@ -197,16 +176,16 @@ class CloudStorage(object):
     @property
     def can_use_advanced_aws(self):
         """
-        `True` if the `boto` module is installed and ckanext-cloudstorage has
+        `True` if the `boto3` module is installed and ckanext-cloudstorage has
         been configured to use Amazon S3, otherwise `False`.
         """
         # Are we even using AWS?
         if 'S3' in self.driver_name:
             try:
-                # Yes? Is the boto package available?
-                import boto
+                # Yes? Is the boto3 package available?
+                import boto3
                 # Shut the linter up.
-                assert boto
+                assert boto3
                 return True
             except ImportError:
                 pass
@@ -406,23 +385,11 @@ class ResourceCloudStorage(CloudStorage):
             )
         elif self.can_use_advanced_aws and self.use_secure_urls:
 
-            from boto.s3.connection import S3Connection
-            os.environ['S3_USE_SIGV4'] = 'True'
-            s3_connection = S3Connection(
-                aws_access_key_id=self.driver_options['key'],
-                aws_secret_access_key=self.driver_options['secret'],
-                security_token=self.driver_options['token'],
-                host='s3.eu-west-1.amazonaws.com'
-            )
+            obj = self.driver.get_object(container_name=self.container_name,
+                                         object_name=path)
+            url = self.driver.get_object_cdn_url(obj, ex_expiry=1)
 
-            generate_url_params = {"expires_in": 60 * 60,
-                                   "method": "GET",
-                                   "bucket": self.container_name,
-                                   "key": path}
-            if content_type:
-                generate_url_params['headers'] = {"Content-Type": content_type}
-
-            return s3_connection.generate_url_sigv4(**generate_url_params)
+            return url
 
         # Find the object for the given key.
         try:

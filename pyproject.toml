@@ -27,5 +27,5 @@ filterwarnings = [
 
 [project.optional-dependencies]
 boto3 =  [
-  "boto3
+  "boto3"
 ]
