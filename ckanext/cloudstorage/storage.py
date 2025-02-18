@@ -32,7 +32,7 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
-        if 'S3' in self.driver_name and not self.driver_options and self.aws_use_boto3_sessions:
+        if 'S3' in self.driver_name and not self.driver_options and self.can_use_advanced_aws:
             self.authenticate_with_aws_boto3()
 
         self.driver = get_driver(
@@ -74,13 +74,10 @@ class CloudStorage(object):
         """
         Return the currently configured libcloud container.
         """
-        if self.driver_options.get('expires'):
+        if self.driver_options.get('expires') and self.can_use_advanced_aws:
             expires = datetime.strptime(self.driver_options['expires'], "%Y-%m-%dT%H:%M:%SZ")
             if expires < datetime.utcnow():
-                if self.aws_use_boto3_sessions:
                     self.authenticate_with_aws_boto3()
-                else:
-                    self.authenticate_with_aws()
 
         if self._container is None:
             self._container = self.driver.get_container(
@@ -132,15 +129,6 @@ class CloudStorage(object):
         return p.toolkit.asbool(
             config.get('ckanext.cloudstorage.use_secure_urls', False)
         )
-
-    @property
-    def aws_use_boto3_sessions(self):
-        """
-        'True' if ckanext-cloudstorage is configured to use boto3 instead of
-        boto for AWS IAM sessions. This makes session creation possible on
-        platforms like AWS ECS Fargate or AWS Lambda.
-        """
-        return p.toolkit.asbool(config.get('ckanext.cloudstorage.aws_use_boto3_sessions', False))
 
     @property
     def leave_files(self):
