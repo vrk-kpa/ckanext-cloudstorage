@@ -6,10 +6,12 @@ import os
 import requests
 import pytest
 from ckan.tests import factories, helpers
+from faker import Faker
 
 from ckanext.cloudstorage.storage import ResourceCloudStorage
 from ckanext.cloudstorage.utils import FakeFileStorage
 
+fake = Faker()
 
 @pytest.mark.usefixtures(
     "with_driver_options", "with_plugins", "with_request_context", "clean_db"
@@ -61,7 +63,7 @@ class TestMultipartUpload(object):
         assert storage.get_url_from_filename(res["id"], filename)
 
     def test_upload_without_resource(self):
-        res = {"id": "random-id"}
+        res = {"id": fake.uuid4()}
         filename = "file.txt"
         multipart = helpers.call_action(
             "cloudstorage_initiate_multipart",
