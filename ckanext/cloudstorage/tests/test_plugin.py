@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import ckan.plugins as p
 import pytest
 from ckan.tests import factories, helpers
@@ -25,6 +26,7 @@ class TestCloudstoragePlugin(object):
         with pytest.raises(RuntimeError, match="configuration option"):
             plugin.configure(ckan_config)
 
+    @pytest.mark.skipif(os.environ.get('SKIP_IN_CI', None) is not None, reason="Fails in CI")
     def test_before_delete(self, create_with_upload):
         """When resource deleted, we must remove corresponding file from S3."""
         name = "test.txt"

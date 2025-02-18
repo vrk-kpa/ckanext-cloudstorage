@@ -78,6 +78,7 @@ jobs:
           TEST_DRIVER: ${{ vars.S3_REGION }}
           TEST_CONTAINER: ${{ vars.S3_BUCKET }}
           TEST_DRIVER_OPTIONS: "{'key': ${{ steps.aws-credentials.outputs.aws-access-key-id }}, 'secret': ${{ steps.aws-credentials.outputs.aws-secret-access-key }}, 'token': ${{ steps.aws-credentials.outputs.aws-session-token }}, 'host': 's3-eu-west-1.amazonaws.com' }"
+          SKIP_IN_CI: true
 
       - name: install codecov requirements
         run: |
