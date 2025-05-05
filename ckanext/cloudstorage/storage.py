@@ -62,6 +62,7 @@ class CloudStorage(object):
                                'token': current_credentials.token,
                                'expires': datetime.fromtimestamp(time() + 900).strftime('%Y-%m-%dT%H:%M:%SZ')}
 
+        # Todo: Not needed ?
         self.driver = get_driver(
             getattr(
                 Provider,
