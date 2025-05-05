@@ -97,16 +97,18 @@ def initiate_multipart(context, data_dict):
 
     h.check_access('cloudstorage_initiate_multipart', data_dict)
     id, name, size = toolkit.get_or_bust(data_dict, ['id', 'name', 'size'])
-    user_id = None
-    if context['auth_user_obj']:
-        user_id = context['auth_user_obj'].id
+    user_obj = model.User.get(context['user'])
+    user_id = user_obj.id if user_obj else None
 
-    res_dict = toolkit.get_action('resource_show')(
-        context.copy(), {'id': data_dict.get('id')})
+    try:
+        res_dict = toolkit.get_action('resource_show')(
+            context.copy(), {'id': data_dict.get('id')})
 
-    # Delay handling in archiver
-    res_dict['upload_in_progress'] = True
-    toolkit.get_action('resource_patch')(context.copy(), res_dict)
+        # Delay handling in archiver
+        res_dict['upload_in_progress'] = True
+        toolkit.get_action('resource_patch')(context.copy(), res_dict)
+    except toolkit.ObjectNotFound:
+        log.info("Resource doesn't exist")
 
     uploader = ResourceCloudStorage({'multipart_name': name})
     res_name = uploader.path_from_filename(id, name)
@@ -227,12 +229,13 @@ def finish_multipart(context, data_dict):
     upload.delete()
     upload.commit()
 
-    res_dict = toolkit.get_action('resource_show')(
-        context.copy(), {'id': data_dict.get('id')})
 
     # Change draft state of package to active
     if save_action and save_action == "go-metadata":
         try:
+            res_dict = toolkit.get_action('resource_show')(
+                context.copy(), {'id': data_dict.get('id')})
+
             pkg_dict = toolkit.get_action('package_show')(
                 context.copy(), {'id': res_dict['package_id']})
 
@@ -242,14 +245,14 @@ def finish_multipart(context, data_dict):
                     dict(id=pkg_dict['id'], state='active')
                 )
 
+            # Trigger handling in archiver
+            res_dict.pop('upload_in_progress', None)
+            toolkit.get_action('resource_update')(context.copy(), res_dict)
+
+            submit_to_datapusher(res_dict=res_dict)
         except Exception as e:
             log.error(e)
 
-    # Trigger handling in archiver
-    res_dict.pop('upload_in_progress', None)
-    toolkit.get_action('resource_update')(context.copy(), res_dict)
-
-    submit_to_datapusher(res_dict=res_dict)
 
     return {'commited': True}
 
