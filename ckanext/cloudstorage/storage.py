@@ -32,6 +32,7 @@ def _get_underlying_file(wrapper):
 
 class CloudStorage(object):
     def __init__(self):
+        self._driver_options = yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
         if 'S3' in self.driver_name and not self.driver_options and self.can_use_advanced_aws:
             self.authenticate_with_aws_boto3()
 
@@ -92,7 +93,7 @@ class CloudStorage(object):
         A dictionary of options ckanext-cloudstorage has been configured to
         pass to the apache-libcloud driver.
         """
-        return yaml.safe_load(config['ckanext.cloudstorage.driver_options'])
+        return self._driver_options
 
     @driver_options.setter
     def driver_options(self, value):
@@ -373,9 +374,14 @@ class ResourceCloudStorage(CloudStorage):
             )
         elif self.can_use_advanced_aws and self.use_secure_urls:
 
-            obj = self.driver.get_object(container_name=self.container_name,
-                                         object_name=path)
-            url = self.driver.get_object_cdn_url(obj, ex_expiry=1)
+            import boto3
+            s3_client = boto3.client('s3')
+
+            url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.container_name, 'Key': path},
+                ExpiresIn=60 * 60,
+            )
 
             return url
 

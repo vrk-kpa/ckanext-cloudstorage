@@ -106,7 +106,6 @@ class TestMultipartUpload(object):
         assert result["commited"]
         assert storage.get_url_from_filename(res["id"], filename)
 
-    @pytest.mark.skipif(os.environ.get('SKIP_IN_CI', None) is not None, reason="Fails in CI")
     @pytest.mark.ckan_config("ckanext.cloudstorage.use_secure_urls", True)
     def test_reupload(self):
         filename = "file.txt"
