@@ -29,16 +29,18 @@ For most drivers, this is all you need:
 
     ckanext.cloudstorage.driver_options = {"key": "<your public key>", "secret": "<your secret key>"}
 
+`driver_options` can be left blank in AWS if boto3 is installed and the code is running in AWS environment. 
+
 # Support
 
 Most libcloud-based providers should work out of the box, but only those listed
 below have been tested:
 
-| Provider | Uploads | Downloads | Secure URLs (private resources) |
-| --- | --- | --- | --- |
+| Provider | Uploads | Downloads | Secure URLs (private resources)       |
+| --- | --- | --- |---------------------------------------|
 | Azure    | YES | YES | YES (if `azure-storage` is installed) |
-| AWS S3   | YES | YES | YES (if `boto` is installed) |
-| Rackspace | YES | YES | No |
+| AWS S3   | YES | YES | YES (if `boto3` is installed)         |
+| Rackspace | YES | YES | No                                    |
 
 # What are "Secure URLs"?
 
@@ -50,7 +52,7 @@ the resource. This means that the normal CKAN-provided access restrictions can
 apply to resources with no further effort on your part, but still get all the
 benefits of your CDN/blob storage.
 
-    ckanext.cloudstorage.use_secure_urls = 1
+    ckanext.cloudstorage.use_secure_urls = true
 
 This option also enables multipart uploads, but you need to create database tables
 first. Run next command from extension folder:

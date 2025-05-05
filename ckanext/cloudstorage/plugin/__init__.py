@@ -88,9 +88,9 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
 
     # CKAN <2.10 compatibility
     def before_delete(self, context, resource, resources):
-        return self.before_dataset_delete(context, resource, resources)
+        return self.before_resource_delete(context, resource, resources)
 
-    def before_dataset_delete(self, context, resource, resources):
+    def before_resource_delete(self, context, resource, resources):
         # let's get all info about our resource. It somewhere in resources
         # but if there is some possibility that it isn't(magic?) we have
         # `else` clause
