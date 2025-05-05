@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import ckan.plugins as p
 import pytest
 from ckan.tests import factories, helpers

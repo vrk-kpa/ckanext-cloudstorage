@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from io import BytesIO
-import os
 
 import requests
 import pytest
