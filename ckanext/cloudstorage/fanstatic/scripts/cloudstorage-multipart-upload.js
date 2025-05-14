@@ -311,7 +311,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             var id = this._id.val();
             var self = this;
             if (this._uploadId === null)
-                this._onPrepareUpload(file, id).then(
+                this._onPrepareUpload(file, id, this._frm_csrf_token).then(
                     function (data) {
                         self._uploadId = data.result.id;
                         self.el.trigger('multipartstarted.cloudstorage');
@@ -326,7 +326,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
 
         },
 
-        _onPrepareUpload: function(file, id) {
+        _onPrepareUpload: function(file, id, csrf) {
 
             return $.ajax({
                 method: 'POST',
@@ -335,7 +335,10 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     id: id,
                     name: encodeURIComponent(file.name),
                     size: file.size
-                })
+                }),
+                headers: {
+                    "X-CSRFToken": csrf,
+                },
             });
 
         },
