@@ -30,8 +30,8 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._form = this.$('form');
             // this._origin = $('#field-image-upload');
             // this._file = this._origin.clone()
-            this._file = $('#field-image-upload');
-            this._url = $('#field-image-url');
+            this._file = $('#field-image-upload, #field-resource-upload');
+            this._url = $('#field-image-url, #field-resource-url');
             this._save = $('[name=save]');
             this._id = $('input[name=id]');
             this._progress = $('<div>', {
