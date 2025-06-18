@@ -376,7 +376,10 @@ class ResourceCloudStorage(CloudStorage):
         elif self.can_use_advanced_aws and self.use_secure_urls:
 
             import boto3
-            s3_client = boto3.client('s3')
+            s3_client = boto3.client('s3',
+                                     aws_access_key_id=self.driver_options['key'],
+                                     aws_secret_access_key=self.driver_options['secret'],
+                                     aws_session_token=self.driver_options['token'])
 
             url = s3_client.generate_presigned_url(
                 'get_object',
