@@ -290,11 +290,25 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     self._onPerformUpload(file);
                 },
                 function (err, st, msg) {
+
+                  if ( err.responseJSON.error !== null){
+                    for (const prop in err.responseJSON.error){
+                      if (prop !== '__type') {
+                        self.sandbox.notify(
+                          'Error',
+                          `${prop}: ${err.responseJSON.error[prop][0]}`,
+                          'error'
+                        );
+                      }
+                    }
+                  }
+                  else{
                     self.sandbox.notify(
-                        'Error',
-                        msg,
-                        'error'
+                      'Error',
+                      msg,
+                      'error'
                     );
+                  }
                     self._onHandleError('Unable to save resource');
                 }
             );
