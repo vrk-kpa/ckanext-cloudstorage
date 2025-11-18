@@ -35,15 +35,18 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._save = $('[name=save]');
             this._id = $('input[name=id]');
             this._progress = $('<div>', {
-                class: 'progress hidden'
+                class: 'progress'
             });
             this._bar = $('<div>', {
                 class: 'progress-bar progress-bar-striped active'
             });
             this._progress.append(this._bar);
             this._progress.insertAfter(this._url.parent().parent());
-            this._resumeBtn = $('<a>', {class: 'hidden btn btn-info controls'}).insertAfter(
+            this._progress.hide();
+            this._resumeBtn = $('<a>', {class: 'btn btn-info controls'}).insertAfter(
                 this._progress).text('Resume Upload');
+            this._resumeBtn.hide();
+
             this._pressedSaveButton = null;
 
             var self = this;
@@ -138,7 +141,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                         break;
                     }
                 })
-                .removeClass('hidden').show();
+                .show();
         },
 
         _onDisableResumeBtn: function () {
@@ -162,7 +165,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             }
 
             this._setProgressType('info', this._progress);
-            this._progress.removeClass('hidden').show('slow');
+            this._progress.show('slow');
         },
 
         _onGenerateAdditionalData: function (form) {
@@ -221,7 +224,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     loaded: loaded
                 });
 
-                this._progress.removeClass('hidden').show('slow');
+                this._progress.show('slow');
                 this._onDisableResumeBtn();
                 this._save.trigger('click');
 
