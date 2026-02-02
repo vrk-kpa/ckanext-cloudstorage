@@ -36,13 +36,14 @@ class CloudStorage(object):
         if 'S3' in self.driver_name and not self.driver_options and self.can_use_advanced_aws:
             self.authenticate_with_aws_boto3()
 
-        self.driver = get_driver(
-            getattr(
-                Provider,
-                self.driver_name
-            )
-        )(**self.driver_options)
-        self._container = None
+        else:
+            self.driver = get_driver(
+                getattr(
+                    Provider,
+                    self.driver_name
+                )
+            )(**self.driver_options)
+            self._container = None
 
     def path_from_filename(self, rid, filename):
         raise NotImplementedError
