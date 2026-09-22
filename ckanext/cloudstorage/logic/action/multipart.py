@@ -36,6 +36,7 @@ def _delete_multipart(upload, uploader):
 
     if uploader.can_use_advanced_aws:
         import boto3
+        import botocore
         s3_client = boto3.client('s3',
                                  aws_access_key_id=uploader.driver_options['key'],
                                  aws_secret_access_key=uploader.driver_options['secret'],
