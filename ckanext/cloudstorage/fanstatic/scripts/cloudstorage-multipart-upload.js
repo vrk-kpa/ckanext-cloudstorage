@@ -9,7 +9,9 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                 resource_update: _('Resource has been updated.'),
                 undefined_upload_id: _('Undefined uploadId.'),
                 upload_completed: _('Upload completed. You will be redirected in few seconds...'),
-                unable_to_finish: _('Unable to finish multipart upload')
+                unable_to_finish: _('Unable to finish multipart upload'),
+                clear_upload: _('Clear upload'),
+                resume_upload: _('Resume upload')
             }
         },
 
@@ -44,8 +46,11 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
             this._progress.insertAfter(this._url.parent().parent());
             this._progress.hide();
             this._resumeBtn = $('<a>', {class: 'btn btn-info controls'}).insertAfter(
-                this._progress).text('Resume Upload');
+                this._progress).text(this.i18n('resume_upload'));
             this._resumeBtn.hide();
+            this._clearUploadBtn = $('<a>', {class: 'btn btn-danger controls'}).insertAfter(
+              this._resumeBtn).text(this.i18n('clear_upload'));
+            this._clearUploadBtn.hide();
 
             this._pressedSaveButton = null;
 
@@ -109,6 +114,8 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                              '; Size: ' + self._uploadSize,
                         'warning');
                     self._onEnableResumeBtn(operation);
+                    self._onEnableClearBtn(id);
+
                 },
                 function (error) {
                     console.log(error);
@@ -122,7 +129,7 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
 
         _onEnableResumeBtn: function (operation) {
             var self = this;
-            this.$('.btn-remove-url').remove();
+            this.$('.btn-remove-url').hide();
             if (operation === 'choose'){
                 self._onDisableSave(true);
 
@@ -142,6 +149,13 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     }
                 })
                 .show();
+        },
+
+        _onEnableClearBtn: function (id) {
+          let self = this;
+          this._clearUploadBtn.on('click', function (event) {
+            self._onAbortUpload(id)
+          }).show();
         },
 
         _onDisableResumeBtn: function () {
@@ -369,7 +383,9 @@ ckan.module('cloudstorage-multipart-upload', function($, _) {
                     id: id
                 },
                 function (data) {
-                    console.log(data);
+                    self._resumeBtn.hide();
+                    self._clearUploadBtn.hide();
+                    self.$('.btn-remove-url').show();
                 },
                 function (err) {
                     console.log(err);

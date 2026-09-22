@@ -29,3 +29,9 @@ filterwarnings = [
 boto3 =  [
   "boto3"
 ]
+
+[tool.ruff]
+line-length = 127
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]

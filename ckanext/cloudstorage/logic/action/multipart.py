@@ -33,12 +33,31 @@ def _get_object_url(uploader, name):
 
 
 def _delete_multipart(upload, uploader):
-    resp = uploader.driver.connection.request(
-        _get_object_url(uploader, upload.name) + '?uploadId=' + upload.id,
-        method='DELETE'
-    )
-    if not resp.success():
-        raise toolkit.ValidationError(resp.error)
+
+    if uploader.can_use_advanced_aws:
+        import boto3
+        import botocore
+        s3_client = boto3.client('s3',
+                                 aws_access_key_id=uploader.driver_options['key'],
+                                 aws_secret_access_key=uploader.driver_options['secret'],
+                                 aws_session_token=uploader.driver_options['token'])
+
+        try:
+            resp = s3_client.abort_multipart_upload(
+                Bucket=uploader.container_name,
+                Key=upload.name,
+                UploadId=upload.id,
+            )
+
+        except botocore.exceptions.ClientError as error:
+            raise toolkit.ValidationError(error)
+    else:
+        resp = uploader.driver.connection.request(
+            _get_object_url(uploader, upload.name) + '?uploadId=' + upload.id,
+            method='DELETE'
+        )
+        if not resp.success():
+            raise toolkit.ValidationError(resp.error)
 
     upload.delete()
     upload.commit()
