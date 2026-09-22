@@ -1,7 +1,7 @@
 """Create cloudstorage tables
 
 Revision ID: 8daf8d1f572e
-Revises: 
+Revises:
 Create Date: 2025-02-10 11:35:26.678016
 
 """
