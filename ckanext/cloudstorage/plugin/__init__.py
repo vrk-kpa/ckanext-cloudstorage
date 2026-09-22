@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 from ckan import plugins
 import os.path
+import ckanext.cloudstorage
+
 from ckanext.cloudstorage import storage
 from ckanext.cloudstorage import helpers
 import ckanext.cloudstorage.logic.action.multipart as m_action
 import ckanext.cloudstorage.logic.auth.multipart as m_auth
+
+from ckan.lib.plugins import DefaultTranslation
 
 if plugins.toolkit.check_ckan_version(min_version='2.9.0'):
     from ckanext.cloudstorage.plugin.flask_plugin import MixinPlugin
@@ -13,7 +17,7 @@ else:
     from ckanext.cloudstorage.plugin.pylons_plugin import MixinPlugin
 
 
-class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
+class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin, DefaultTranslation):
     plugins.implements(plugins.IUploader)
     plugins.implements(plugins.IConfigurable)
     plugins.implements(plugins.IConfigurer)
@@ -21,6 +25,7 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IResourceController, inherit=True)
+    plugins.implements(plugins.ITranslation, inherit=True)
 
     # IConfigurer
 
@@ -131,3 +136,12 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
             for old_file in uploader.container.iterate_objects():
                 if old_file.name.startswith(upload_path):
                     old_file.delete()
+
+
+    # ITranslation
+    def i18n_directory(self):
+        u'''Change the directory of the .mo translation files'''
+        return os.path.join(
+            os.path.dirname(ckanext.cloudstorage.__file__),
+            'i18n'
+        )
