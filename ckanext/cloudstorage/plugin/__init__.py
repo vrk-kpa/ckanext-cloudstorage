@@ -13,6 +13,7 @@ else:
     from ckanext.cloudstorage.plugin.pylons_plugin import MixinPlugin
 
 
+@plugins.toolkit.blanket.config_declarations
 class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.IUploader)
     plugins.implements(plugins.IConfigurable)
@@ -20,7 +21,7 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IAuthFunctions)
-    plugins.implements(plugins.IResourceController, inherit=True)
+    plugins.implements(plugins.IResourceController, inherit=True) 
 
     # IConfigurer
 

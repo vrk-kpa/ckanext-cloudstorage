@@ -1,0 +1,17 @@
+version: 1
+groups:
+  - annotation: Cloudstorage settings
+    options:
+      - key: ckanext.cloudstorage.driver
+        description: |
+          Driver name for libcloud
+        example: S3_EU_WEST
+      - key: ckanext.cloudstorage.driver_options
+        description: |
+          Dict object containing key, secret and optional token
+        example: {"key": "somekey", "secret": "somesecret", "token": "sometoken"}
+      - key: ckanext.cloudstorage.container_name
+        description: |
+          Container name for libcloud, s3 bucket name for AWS
+        example: some_example_bucket
+
