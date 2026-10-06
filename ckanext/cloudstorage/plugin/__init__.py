@@ -21,7 +21,7 @@ class CloudStoragePlugin(MixinPlugin, plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IAuthFunctions)
-    plugins.implements(plugins.IResourceController, inherit=True) 
+    plugins.implements(plugins.IResourceController, inherit=True)
 
     # IConfigurer
 
